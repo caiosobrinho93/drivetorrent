@@ -1,0 +1,39 @@
+<!-- _card.html — Refactored Dual Mode (Grid/List) -->
+<a href="{{ url_for('jogo_detail', jogo_id=jogo.id) }}" class="game-card group neon-border flex outline-none" data-id="{{ jogo.id }}">
+  <!-- Image Area -->
+  <div class="card-image-container relative rounded-[11px] overflow-hidden shrink-0">
+    <img
+      src="{{ url_for('static', filename=jogo.capa_path) }}"
+      alt="{{ jogo.nome }}"
+      onerror="this.src='{{ url_for('static', filename='covers/default.jpg') }}'"
+      class="w-full h-full object-cover transition-filter duration-300"
+      loading="lazy"
+    />
+    
+    <!-- Category Badge (GRID ONLY) -->
+    <div class="card-badge-grid absolute top-3 left-3 z-10 transition-opacity duration-200">
+      <div class="bg-black/60 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-brand">{{ jogo.categoria }}</span>
+      </div>
+    </div>
+
+    <!-- Fade Overlay (GRID ONLY) -->
+    <div class="img-overlay-gradient absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none transition-opacity duration-200"></div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="card-info flex flex-col justify-end pt-2 pb-3 px-3 transition-all duration-200 z-10 min-w-0">
+    <!-- Category Badge (LIST ONLY) -->
+    <div class="card-badge-list hidden mb-1 truncate">
+      <span class="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/10 px-1.5 py-0.5 rounded border border-brand/20">{{ jogo.categoria }}</span>
+    </div>
+
+    <h3 class="card-title text-[13px] font-bold text-white leading-snug line-clamp-2 mt-auto" title="{{ jogo.nome }}">
+      {{ jogo.nome }}
+    </h3>
+    <div class="card-meta flex items-center justify-between mt-1 opacity-80 min-w-0 gap-2">
+       <span class="text-[11px] text-gray-300 truncate">{{ jogo.plataforma or 'PC' }}</span>
+       <span class="text-[11px] font-bold text-brand whitespace-nowrap">{{ jogo.tamanho }} GB</span>
+    </div>
+  </div>
+</a>

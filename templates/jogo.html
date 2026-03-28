@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}{{ jogo.nome }}{% endblock %}
+
+{% block content %}
+<!-- Blurred Hero Banner (Background) -->
+<div class="fixed top-0 left-0 w-full h-[60vh] -z-10 overflow-hidden opacity-40 pointer-events-none">
+  <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--surface)]/60 to-[var(--surface)] z-10"></div>
+  <img src="{{ url_for('static', filename=jogo.capa_path) }}" class="w-full h-full object-cover blur-[100px] scale-125 saturate-200" alt="" />
+</div>
+
+<div class="w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-10">
+
+  <!-- Botão voltar -->
+  <a href="{{ url_for('index') }}" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group w-fit" data-tooltip="Voltar à Listagem Principal">
+    <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Voltar ao catálogo
+  </a>
+
+  <!-- ══════════ LAYOUT SPLIT ══════════ -->
+  <div class="flex flex-col lg:flex-row gap-10 lg:gap-14">
+
+    <!-- ── ESQUERDA: Capa ── -->
+    <div class="lg:w-80 xl:w-96 shrink-0">
+      <div class="sticky top-24">
+        <div class="rounded-xl2 overflow-hidden shadow-card-hover aspect-[2/3] bg-surface-elevated">
+          <img
+            id="cover-img"
+            src="{{ url_for('static', filename=jogo.capa_path) }}"
+            alt="Capa {{ jogo.nome }}"
+            class="w-full h-full object-cover"
+            onerror="this.src='{{ url_for('static', filename='covers/default.jpg') }}'"
+          />
+        </div>
+
+        <!-- Ações -->
+        <div class="mt-8 flex flex-col gap-3">
+          {% if jogo.torrent_path %}
+            <a
+              href="{{ url_for('download_torrent', jogo_id=jogo.id) }}"
+              class="btn-primary w-full justify-center gap-2 text-base font-semibold py-4 rounded-xl shadow-glow"
+              id="btn-download"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Baixar Torrent
+            </a>
+          {% else %}
+            <button disabled class="btn-disabled w-full justify-center gap-2 text-base font-semibold py-4 rounded-xl">
+              <svg class="w-6 h-6 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+              </svg>
+              Sem arquivo .torrent
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DIREITA: Detalhes & Abas ── -->
+    <div class="flex-1 min-w-0">
+
+      <!-- Cabeçalho (Fixo em todas as abas) -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <span class="badge-platform !text-sm !px-3 !py-1">{{ jogo.plataforma }}</span>
+        <span class="text-gray-500 text-sm">Adicionado em {{ jogo.data_adicao[:10] }}</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl font-extrabold leading-tight mb-6">{{ jogo.nome }}</h1>
+
+      <!-- Métricas Foco Fixo -->
+      <div class="flex items-center gap-6 mb-8 mt-4 text-sm font-semibold text-gray-400">
+        <div class="flex items-center gap-2"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> {{ jogo.plataforma }}</div>
+        <div class="flex items-center gap-2"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg> {{ jogo.tamanho }} GB</div>
+      </div>
+
+      <!-- Abas de Navegação -->
+      <div class="flex items-center gap-6 border-b border-surface-border mb-8">
+        <button onclick="switchTab('detalhes')" id="btn-tab-detalhes" class="tab-btn pb-3 font-semibold text-brand border-b-2 border-brand transition-colors">Detalhes</button>
+        {% if screenshots %}
+          <button onclick="switchTab('imagens')" id="btn-tab-imagens" class="tab-btn pb-3 font-medium text-gray-500 hover:text-gray-300 border-b-2 border-transparent transition-colors">Imagens <span class="text-xs bg-white/10 px-1.5 py-0.5 rounded-md ml-1">{{ screenshots|length }}</span></button>
+        {% endif %}
+        {% if jogo.youtube_url %}
+          <button onclick="switchTab('video')" id="btn-tab-video" class="tab-btn pb-3 font-medium text-gray-500 hover:text-gray-300 border-b-2 border-transparent transition-colors">Trailer Oficial</button>
+        {% endif %}
+      </div>
+
+      <!-- Conteúdo da Aba: DETALHES -->
+      <div id="tab-detalhes" class="tab-content block animate-fade-in">
+        <div class="prose-dark max-w-none">
+          {% if jogo.descricao %}
+            <div id="desc-container" class="relative">
+              <div id="desc-text" class="text-gray-300 leading-relaxed whitespace-pre-line text-[15px] xl:text-base line-clamp-[6] transition-all duration-300">
+                {{ jogo.descricao }}
+              </div>
+              
+              <!-- Gradient Fade para o final do texto encurtado -->
+              <div id="desc-gradient" class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[var(--surface)] to-transparent pointer-events-none transition-opacity duration-300"></div>
+            </div>
+            
+            <button id="btn-read-more" onclick="toggleDesc()" class="mt-4 text-brand font-semibold text-sm hover:text-brand/80 transition-colors flex items-center gap-1">
+              Ler descrição completa
+              <svg id="desc-icon" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+          {% else %}
+            <p class="text-gray-600 italic">Nenhuma descrição disponível.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Conteúdo da Aba: IMAGENS -->
+      {% if screenshots %}
+      <div id="tab-imagens" class="tab-content hidden animate-fade-in">
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for img_url in screenshots %}
+            <a href="{{ img_url }}" target="_blank" class="block aspect-video rounded-xl overflow-hidden border border-surface-border hover:border-brand transition-colors relative group">
+              <img src="{{ img_url }}" alt="Screenshot {{ loop.index }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Conteúdo da Aba: VÍDEO -->
+      {% if jogo.youtube_url %}
+      <div id="tab-video" class="tab-content hidden animate-fade-in">
+        <div class="aspect-video rounded-2xl overflow-hidden shadow-card border border-surface-border">
+          <iframe 
+            src="{{ jogo.youtube_url }}" 
+            class="w-full h-full" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast de cópia -->
+<div id="toast-magnet" class="fixed bottom-6 right-6 bg-surface-elevated border border-brand/40 text-white text-sm px-5 py-3 rounded-xl shadow-glow translate-y-16 opacity-0 transition-all duration-300 flex items-center gap-2">
+  <svg class="w-4 h-4 text-brand" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+  </svg>
+  Link magnet copiado!
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function switchTab(tabId) {
+    // Esconder todos os conteúdos
+    document.querySelectorAll('.tab-content').forEach(el => {
+      el.classList.remove('block');
+      el.classList.add('hidden');
+    });
+    // Mostrar o alvo
+    const target = document.getElementById('tab-' + tabId);
+    if (target) {
+      target.classList.remove('hidden');
+      target.classList.add('block');
+    }
+
+    // Atualizar botões
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('text-brand', 'border-brand', 'font-semibold');
+      btn.classList.add('text-gray-500', 'border-transparent', 'font-medium');
+    });
+    const targetBtn = document.getElementById('btn-tab-' + tabId);
+    if (targetBtn) {
+      targetBtn.classList.add('text-brand', 'border-brand', 'font-semibold');
+      targetBtn.classList.remove('text-gray-500', 'border-transparent', 'font-medium');
+    }
+  }
+
+  function toggleDesc() {
+    const descText = document.getElementById('desc-text');
+    const gradient = document.getElementById('desc-gradient');
+    const btn = document.getElementById('btn-read-more');
+    const icon = document.getElementById('desc-icon');
+
+    if (descText.classList.contains('line-clamp-[6]')) {
+      // Expandir
+      descText.classList.remove('line-clamp-[6]');
+      if(gradient) gradient.classList.add('opacity-0');
+      btn.childNodes[0].nodeValue = "Recolher descrição ";
+      icon.classList.add('rotate-180');
+    } else {
+      // Recolher
+      descText.classList.add('line-clamp-[6]');
+      if(gradient) gradient.classList.remove('opacity-0');
+      btn.childNodes[0].nodeValue = "Ler descrição completa ";
+      icon.classList.remove('rotate-180');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const descText = document.getElementById('desc-text');
+    const btn = document.getElementById('btn-read-more');
+    const gradient = document.getElementById('desc-gradient');
+    if(descText && btn) {
+      if (descText.scrollHeight <= descText.clientHeight) {
+        btn.style.display = 'none';
+        if(gradient) {
+            gradient.style.display = 'none';
+            gradient.classList.add('opacity-0');
+        }
+        descText.classList.remove('line-clamp-[6]');
+      }
+    }
+  });
+
+  function copiarMagnet() {
+    // Placeholder — substitua pelo magnet real se disponível
+    const magnetLink = "magnet:?xt=urn:btih:PLACEHOLDER&dn={{ jogo.slug }}";
+    navigator.clipboard.writeText(magnetLink).then(() => {
+      const toast = document.getElementById("toast-magnet");
+      if(toast) {
+        toast.classList.remove("translate-y-16", "opacity-0");
+        setTimeout(() => toast.classList.add("translate-y-16", "opacity-0"), 2500);
+      }
+    }).catch(() => {
+      alert("Não foi possível copiar o link magnet.");
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- ══════════ HEADER DO PAINEL ══════════ -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl font-bold">Painel Admin</h1>
+      <p class="text-gray-500 text-sm">Gerencie o catálogo de jogos</p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="text-gray-500 text-sm hidden lg:inline">{{ total }} jogo(s) cadastrado(s)</span>
+      
+      <div class="flex items-center gap-2">
+        <button id="btn-toggle-form" class="btn-primary text-xs sm:text-sm gap-2 flex items-center" data-tooltip="Ocultar/Mostrar Formulário">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Adicionar Novo
+        </button>
+        <button id="btn-toggle-bulk" class="btn-secondary text-xs sm:text-sm gap-2 flex items-center bg-white/5 border-white/10 text-white hover:bg-white/10" data-tooltip="Modo Lote (Avançado)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0l-2 2H5l-2-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/></svg>
+          Lote
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('index') }}" target="_blank" class="btn-secondary text-xs sm:text-sm" data-tooltip="Acessar o Blog Frontend">Ver Site</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ FORMULÁRIO: ADICIONAR / EDITAR ══════════ -->
+  <section id="admin-form-section" class="mb-10 {% if not jogo_edit %}hidden{% endif %}">
+    {% if jogo_edit %}
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-brand">✏️ Editando: {{ jogo_edit.nome }}</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="text-xs text-gray-500 hover:text-white">Cancelar Edição</a>
+      </div>
+      <form id="form-jogo" method="POST" action="{{ url_for('admin_editar', jogo_id=jogo_edit.id) }}" enctype="multipart/form-data" novalidate>
+    {% else %}
+      <h2 class="text-lg font-semibold mb-4">Adicionar Novo Item</h2>
+      <form id="form-jogo" method="POST" action="{{ url_for('admin_adicionar') }}" enctype="multipart/form-data" novalidate>
+    {% endif %}
+
+      <div class="bg-surface-card border border-surface-border rounded-xl2 p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <!-- Campos de Mídia Extendida -->
+        <div class="lg:col-span-2">
+          <label class="form-label" for="screenshots_text">URLs das Imagens Extras (separadas por vírgula)</label>
+          <textarea id="screenshots_text" rows="2" placeholder="https://img1.jpg, https://img2.jpg" class="input-field w-full resize-none text-xs"></textarea>
+          <input type="hidden" id="screenshots" name="screenshots" value="{{ jogo_edit.screenshots if jogo_edit else '[]' }}">
+        </div>
+
+        <div>
+          <label class="form-label" for="youtube_url">URL do Trailer (YouTube)</label>
+          <input id="youtube_url" name="youtube_url" type="url" placeholder="https://youtube.com/watch?v=..." class="input-field w-full text-xs" value="{{ jogo_edit.youtube_url if jogo_edit else '' }}">
+        </div>
+
+        <!-- Nome -->
+        <div class="lg:col-span-2">
+          <label class="form-label" for="nome">Nome do Jogo *</label>
+          <input id="nome" name="nome" type="text" required placeholder="Ex: Elden Ring"
+            class="input-field w-full" autocomplete="off"
+            value="{{ jogo_edit.nome if jogo_edit else '' }}"
+          />
+          <div id="enrich-status" class="mt-1 text-xs text-brand hidden flex items-center gap-1">
+            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <span>Buscando informações automáticas...</span>
+          </div>
+        </div>
+
+        <!-- Tamanho -->
+        <div>
+          <label class="form-label" for="tamanho">Tamanho (GB)</label>
+          <input id="tamanho" name="tamanho" type="number" step="0.1" min="0" placeholder="Ex: 45.5"
+            class="input-field w-full"
+            value="{{ jogo_edit.tamanho if jogo_edit else '' }}"
+          />
+        </div>
+
+        <!-- Categoria -->
+        <div>
+          <label class="form-label" for="categoria">Categoria *</label>
+          <select id="categoria" name="categoria" class="input-field w-full" required>
+            <option value="">Selecione...</option>
+            {% for c in categorias %}
+              <option value="{{ c }}" {% if jogo_edit and jogo_edit.categoria == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+
+
+        <!-- Upload Capa -->
+        <div>
+          <label class="form-label">Capa (imagem)</label>
+          <div class="file-drop-zone" id="capa-drop">
+            <input type="file" id="capa" name="capa" accept=".jpg,.jpeg,.png,.webp" class="hidden" />
+            <label for="capa" class="cursor-pointer flex flex-col items-center gap-1 p-3">
+              <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <span class="text-xs text-gray-500" id="capa-label">
+                {% if jogo_edit and jogo_edit.capa_path != 'covers/default.jpg' %}Atual: {{ jogo_edit.capa_path.split('/')[-1] }}{% else %}Clique ou SteamGridDB{% endif %}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Upload Torrent -->
+        <div>
+          <label class="form-label">Arquivo .torrent</label>
+          <div class="file-drop-zone" id="torrent-drop">
+            <input type="file" id="torrent" name="torrent" accept=".torrent" class="hidden" />
+            <label for="torrent" class="cursor-pointer flex flex-col items-center gap-1 p-3">
+              <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+              </svg>
+              <span class="text-xs text-gray-500" id="torrent-label">
+                {% if jogo_edit and jogo_edit.torrent_path %}Atual: {{ jogo_edit.torrent_path.split('/')[-1] }}{% else %}Clique para selecionar{% endif %}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Descrição (full width) -->
+        <div class="sm:col-span-2 lg:col-span-3">
+          <label class="form-label" for="descricao">Descrição</label>
+          <textarea id="descricao" name="descricao" rows="4"
+            placeholder="Sinopse, requisitos, informações do release..."
+            class="input-field w-full resize-none"
+          >{{ jogo_edit.descricao if jogo_edit else '' }}</textarea>
+        </div>
+
+        <!-- Botões -->
+        <div class="sm:col-span-2 lg:col-span-3 flex items-center gap-3 flex-wrap">
+          <button type="submit" id="btn-submit" class="btn-primary gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {% if jogo_edit %}Salvar Alterações{% else %}Adicionar Jogo{% endif %}
+          </button>
+          {% if jogo_edit %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Cancelar</a>
+          {% endif %}
+        </div>
+
+      </div>
+    </form>
+  </section>
+  <hr class="border-surface-border mb-10 opacity-30">
+
+  <!-- ══════════ BULK UPLOAD (Lote) ══════════ -->
+  <section id="admin-bulk-section" class="mb-10 hidden">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      </div>
+      <h2 class="text-lg font-semibold">Adicionar em Lote (.torrent)</h2>
+    </div>
+
+    <div class="bg-surface-card border border-surface-border rounded-xl2 p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+        
+        <!-- Categoria do Lote -->
+        <div>
+          <label class="form-label">Categoria do Lote *</label>
+          <select id="bulk-categoria" class="input-field w-full">
+            <option value="Jogo">Jogos</option>
+            <option value="Curso">Cursos</option>
+            <option value="Software">Softwares</option>
+          </select>
+        </div>
+
+        <!-- Dropzone Múltiplo -->
+        <div class="md:col-span-2">
+          <label class="form-label">Selecionar Arquivos .torrent *</label>
+          <div class="file-drop-zone h-14" id="bulk-drop">
+            <input type="file" id="bulk-files" multiple accept=".torrent" class="hidden" />
+            <label for="bulk-files" class="cursor-pointer flex items-center justify-center gap-2 h-full">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span class="text-sm text-gray-400" id="bulk-label">Selecionar vários arquivos</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="md:col-span-3">
+          <button type="button" id="btn-bulk-process" class="btn-primary w-full md:w-auto px-10">
+            Processar Lote Agora
+          </button>
+        </div>
+      </div>
+
+      <!-- Log de Progresso -->
+      <div id="bulk-progress-container" class="mt-6 hidden border-t border-surface-border pt-6">
+        <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
+          <span id="bulk-status-title">Processando...</span>
+          <span class="text-xs font-normal text-gray-500" id="bulk-count">0/0</span>
+        </h3>
+        <div class="max-h-48 overflow-y-auto space-y-2 pr-2" id="bulk-log">
+          <!-- Logs dinâmicos -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ BUSCA NA LISTAGEM ══════════ -->
+  <div class="flex items-center gap-3 mb-5">
+    <h2 class="text-lg font-semibold flex-1">Jogos Cadastrados</h2>
+    <form method="GET" action="{{ url_for('admin_dashboard') }}" class="flex gap-2">
+      <input type="text" name="q" value="{{ query }}" placeholder="Buscar..." class="input-field !py-2 !text-sm w-48" />
+      <button type="submit" class="btn-secondary !py-2 !text-sm">Buscar</button>
+      {% if query %}<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary !py-2 !text-sm">✕</a>{% endif %}
+    </form>
+  </div>
+
+
+  <!-- ══════════ TABELA DE JOGOS ══════════ -->
+  <div class="bg-surface-card border border-surface-border rounded-xl2 overflow-hidden">
+    {% if jogos %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="admin-table">
+          <thead class="bg-surface-elevated border-b border-surface-border">
+            <tr>
+              <th class="th-cell w-12">#</th>
+              <th class="th-cell w-14">Capa</th>
+              <th class="th-cell">Nome</th>
+              <th class="th-cell hidden sm:table-cell">Categoria</th>
+              <th class="th-cell hidden lg:table-cell">Tamanho</th>
+              <th class="th-cell hidden lg:table-cell">Data</th>
+              <th class="th-cell text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-border">
+            {% for jogo in jogos %}
+            <tr class="hover:bg-surface-elevated/50 transition-colors" id="row-{{ jogo.id }}">
+              <td class="td-cell text-gray-600">{{ jogo.id }}</td>
+              <td class="td-cell">
+                <img
+                  src="{{ url_for('static', filename=jogo.capa_path) }}"
+                  alt="{{ jogo.nome }}"
+                  class="w-10 h-14 object-cover rounded-lg"
+                  onerror="this.src='{{ url_for('static', filename='covers/default.jpg') }}'"
+                  loading="lazy"
+                />
+              </td>
+              <td class="td-cell font-medium text-white max-w-[200px] truncate" title="{{ jogo.nome }}">
+                <a href="{{ url_for('jogo_detail', jogo_id=jogo.id) }}" target="_blank"
+                   class="hover:text-brand transition-colors">{{ jogo.nome }}</a>
+              </td>
+              <td class="td-cell hidden sm:table-cell">
+                <span class="badge-platform !text-xs">{{ jogo.categoria }}</span>
+              </td>
+              <td class="td-cell hidden lg:table-cell text-gray-400">{{ jogo.tamanho }} GB</td>
+              <td class="td-cell hidden lg:table-cell text-gray-500 text-xs">{{ jogo.data_adicao[:10] }}</td>
+              <td class="td-cell text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <!-- Editar -->
+                  <a href="{{ url_for('admin_dashboard', edit=jogo.id) }}" class="action-btn text-brand hover:text-white" data-tooltip="Editar Torrent">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  </a>
+                  
+                  <!-- Excluir -->
+                  <form method="POST" action="{{ url_for('admin_excluir', jogo_id=jogo.id) }}" class="inline-block relative">
+                    <button type="button" class="action-btn text-red-500 hover:text-white" onclick="document.getElementById('confirm-{{ jogo.id }}').classList.remove('hidden')" data-tooltip="Excluir Definitivamente">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação admin -->
+      {% if total_paginas > 1 %}
+        <div class="border-t border-surface-border px-6 py-4 flex items-center justify-between">
+          <span class="text-gray-500 text-sm">Página {{ page }} de {{ total_paginas }}</span>
+          <div class="flex gap-2">
+            {% if page > 1 %}
+              <a href="?page={{ page - 1 }}&q={{ query }}" class="btn-secondary !py-1.5 !text-xs">← Anterior</a>
+            {% endif %}
+            {% if page < total_paginas %}
+              <a href="?page={{ page + 1 }}&q={{ query }}" class="btn-secondary !py-1.5 !text-xs">Próxima →</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="text-center py-16">
+        <p class="text-gray-500">Nenhum jogo cadastrado ainda.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ─── Toggles de Visualização ──────────────────────────────────────────────
+  const btnToggleForm = document.getElementById('btn-toggle-form');
+  const btnToggleBulk = document.getElementById('btn-toggle-bulk');
+  const formSection = document.getElementById('admin-form-section');
+  const bulkSection = document.getElementById('admin-bulk-section');
+
+  function updateToggleState(btn, section, labelOpen, labelClosed, iconPlus, iconClose) {
+    const isHidden = section.classList.contains('hidden');
+    btn.innerHTML = isHidden 
+      ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPlus}"/></svg> ${labelClosed}`
+      : `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconClose}"/></svg> ${labelOpen}`;
+  }
+
+  const iconPlus = "M12 4v16m8-8H4";
+  const iconClose = "M6 18L18 6M6 6l12 12";
+  const iconLote = "M19 11H5m14 0l-2 2H5l-2-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2";
+
+  btnToggleForm?.addEventListener('click', () => {
+    formSection.classList.toggle('hidden');
+    bulkSection.classList.add('hidden'); // Fecha o outro
+    updateToggleState(btnToggleForm, formSection, 'Fechar', 'Adicionar Novo', iconPlus, iconClose);
+    updateToggleState(btnToggleBulk, bulkSection, 'Fechar', 'Lote', iconLote, iconClose);
+  });
+
+  btnToggleBulk?.addEventListener('click', () => {
+    bulkSection.classList.toggle('hidden');
+    formSection.classList.add('hidden'); // Fecha o outro
+    updateToggleState(btnToggleBulk, bulkSection, 'Fechar', 'Lote', iconLote, iconClose);
+    updateToggleState(btnToggleForm, formSection, 'Fechar', 'Adicionar Novo', iconPlus, iconClose);
+  });
+
+  // ─── Atualiza label dos inputs de arquivo ─────────────────────────────────
+  function setupFileLabel(inputId, labelId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    if (!input || !label) return;
+    input.addEventListener('change', () => {
+      label.textContent = input.files[0] ? input.files[0].name : 'Selecionar arquivo';
+    });
+  }
+  setupFileLabel('capa', 'capa-label');
+  setupFileLabel('torrent', 'torrent-label');
+
+  // ─── Confirmação de exclusão ──────────────────────────────────────────────
+  document.querySelectorAll('.form-delete').forEach(form => {
+    form.addEventListener('submit', function (e) {
+      const nome = this.dataset.nome || 'este jogo';
+      if (!confirm(`Tem certeza que deseja excluir "${nome}"?\nEsta ação não pode ser desfeita.`)) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  // ─── Previne múltiplos envios do formulário principal ────────────────────
+  document.getElementById('form-jogo').addEventListener('submit', function () {
+    // Sync do textarea de screenshots
+    const textAreas = document.getElementById('screenshots_text');
+    const hiddenInp = document.getElementById('screenshots');
+    if (textAreas && hiddenInp) {
+      const urls = textAreas.value.split(',').map(s => s.trim()).filter(s => s.startsWith('http'));
+      hiddenInp.value = JSON.stringify(urls);
+    }
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Salvando...';
+  });
+
+  // Preencher textarea caso seja edição (já com JSON oculto)
+  const preHidden = document.getElementById('screenshots');
+  const preText = document.getElementById('screenshots_text');
+  if (preHidden && preText && preHidden.value) {
+    try {
+      const arr = JSON.parse(preHidden.value);
+      if (Array.isArray(arr)) {
+        preText.value = arr.join(', ');
+      }
+    } catch(e){}
+  }
+
+  // ─── Scroll para o formulário se ?edit= presente ─────────────────────────
+  if (window.location.search.includes('edit=')) {
+    setTimeout(() => {
+      const el = document.getElementById('form-jogo');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+
+  // ─── Auto-Enriquecimento (RAWG API) ──────────────────────────────────────
+  const nomeInput = document.getElementById('nome');
+  const descricaoInput = document.getElementById('descricao');
+  const screenshotsInput = document.getElementById('screenshots');
+  const youtubeUrlInput = document.getElementById('youtube_url');
+  const enrichStatus = document.getElementById('enrich-status');
+
+  let enrichTimeout = null;
+
+  nomeInput.addEventListener('input', (e) => {
+    const rawVal = e.target.value;
+    
+    // Se o campo estiver vazio ou estivermos editando um jogo existente, ignoramos.
+    // (Pode ajustar para funcionar na edição se preferir, mas geralmente é melhor só para adições novas)
+    {% if jogo_edit %}
+      return;
+    {% endif %}
+
+    const categoriaSelect = document.getElementById('categoria');
+    const categoria = categoriaSelect ? categoriaSelect.value : 'Jogo';
+
+    if (rawVal.trim().length < 3) {
+      enrichStatus.classList.add('hidden');
+      return;
+    }
+
+    clearTimeout(enrichTimeout);
+    enrichTimeout = setTimeout(() => {
+      // Mostrar spinner
+      enrichStatus.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Buscando informações automáticas...</span>';
+      enrichStatus.classList.remove('hidden');
+      enrichStatus.classList.replace('text-green-400', 'text-brand');
+      enrichStatus.classList.replace('text-red-400', 'text-brand');
+
+      fetch(`{{ url_for('api_enrich') }}?q=${encodeURIComponent(rawVal)}&categoria=${encodeURIComponent(categoria)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.dados_rawg && data.dados_rawg.encontrado) {
+            // Preenche apenas descrição, screenshots e youtube, sem alterar o nome
+            if (!descricaoInput.value) {
+              descricaoInput.value = data.dados_rawg.descricao;
+            }
+            screenshotsInput.value = JSON.stringify(data.dados_rawg.screenshots || []);
+            const st = document.getElementById('screenshots_text');
+            if (st) st.value = (data.dados_rawg.screenshots || []).join(', ');
+            youtubeUrlInput.value = data.dados_rawg.youtube_url || '';
+            
+            // Preenche tamanho sugerido se houver e o usuário ainda não tiver preenchido
+            const tamanhoInput = document.getElementById('tamanho');
+            if (data.dados_rawg.tamanho_gb && !tamanhoInput.value) {
+              tamanhoInput.value = data.dados_rawg.tamanho_gb;
+            }
+
+            enrichStatus.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Metadados capturados com sucesso!</span>';
+            enrichStatus.classList.replace('text-brand', 'text-green-400');
+          } else {
+            enrichStatus.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>Nenhum metadado encontrado online.</span>';
+            enrichStatus.classList.replace('text-brand', 'text-blue-400');
+          }
+          
+          setTimeout(() => { enrichStatus.classList.add('hidden'); }, 4000);
+        })
+        .catch(err => {
+          console.error("Erro no enriquecimento:", err);
+          enrichStatus.innerHTML = '<span>Erro ao buscar dados automáticos.</span>';
+          enrichStatus.classList.replace('text-brand', 'text-red-400');
+          setTimeout(() => { enrichStatus.classList.add('hidden'); }, 3000);
+        });
+    }, 800);
+  });
+
+  // ─── Bulk Upload Logic ──────────────────────────────────────────────
+  const btnBulk = document.getElementById('btn-bulk-process');
+  const bulkInput = document.getElementById('bulk-files');
+  const bulkLabel = document.getElementById('bulk-label');
+  const bulkLog = document.getElementById('bulk-log');
+  const bulkProgress = document.getElementById('bulk-progress-container');
+  const bulkCat = document.getElementById('bulk-categoria');
+  const bulkCount = document.getElementById('bulk-count');
+  const bulkTitle = document.getElementById('bulk-status-title');
+
+  bulkInput.addEventListener('change', () => {
+    const count = bulkInput.files.length;
+    bulkLabel.textContent = count > 0 ? `${count} arquivo(s) selecionado(s)` : 'Selecionar vários arquivos';
+  });
+
+  btnBulk.addEventListener('click', async () => {
+    const files = bulkInput.files;
+    if (files.length === 0) {
+      alert('Selecione ao menos um arquivo .torrent');
+      return;
+    }
+
+    btnBulk.disabled = true;
+    bulkProgress.classList.remove('hidden');
+    bulkLog.innerHTML = '';
+    
+    let processed = 0;
+    const total = files.length;
+    bulkCount.textContent = `0/${total}`;
+    bulkTitle.textContent = 'Processando lote...';
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formData = new FormData();
+      formData.append('torrent', file);
+      formData.append('categoria', bulkCat.value);
+
+      const logItem = document.createElement('div');
+      logItem.className = 'text-xs p-2 rounded bg-surface-elevated/50 border border-surface-border flex items-center justify-between';
+      logItem.innerHTML = `<span class="truncate pr-4">${file.name}</span><span class="text-brand animate-pulse">Enviando...</span>`;
+      bulkLog.prepend(logItem);
+
+      try {
+        const res = await fetch('{{ url_for("admin_bulk_upload") }}', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          logItem.innerHTML = `<span class="truncate pr-4 text-gray-300">${data.nome || file.name}</span><span class="text-green-400">Sucesso!</span>`;
+        } else {
+          logItem.innerHTML = `<span class="truncate pr-4 text-gray-500">${file.name}</span><span class="text-red-400">${data.error || 'Erro'}</span>`;
+        }
+      } catch (err) {
+        logItem.innerHTML = `<span class="truncate pr-4 text-gray-500">${file.name}</span><span class="text-red-500">Falha na conexão</span>`;
+      }
+
+      processed++;
+      bulkCount.textContent = `${processed}/${total}`;
+      logItem.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    bulkTitle.textContent = 'Lote concluído!';
+    btnBulk.disabled = false;
+    
+    // Refresh table if items were added
+    if (processed > 0) {
+      setTimeout(() => { window.location.reload(); }, 2000);
+    }
+  });
+</script>
+{% endblock %}

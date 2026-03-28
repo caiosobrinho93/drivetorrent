@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Login Admin{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-16">
+  <div class="w-full max-w-sm">
+
+    <!-- Logo + Título -->
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mx-auto mb-4 shadow-glow">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold">Painel Administrativo</h1>
+      <p class="text-gray-500 text-sm mt-1">Faça login para gerenciar o blog</p>
+    </div>
+
+    <!-- Card de login -->
+    <div class="bg-surface-card border border-surface-border rounded-xl2 p-7 shadow-card">
+      <form id="login-form" method="POST" action="{{ url_for('admin_login') }}" novalidate>
+
+        <div class="space-y-4">
+          <div>
+            <label for="senha" class="block text-sm font-medium text-gray-300 mb-1.5">Senha de Acesso</label>
+            <div class="relative">
+              <input
+                id="senha"
+                name="senha"
+                type="password"
+                required
+                placeholder="••••••••••"
+                autocomplete="current-password"
+                class="input-field w-full pr-10"
+              />
+              <!-- Toggle visibilidade -->
+              <button
+                type="button"
+                id="toggle-senha"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                aria-label="Mostrar/ocultar senha"
+              >
+                <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="btn-login"
+            class="btn-primary w-full justify-center py-3 text-base font-semibold"
+          >
+            Entrar no Painel
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <p class="text-center text-gray-600 text-xs mt-6">
+      Acesso restrito ao administrador do blog
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Toggle senha
+  const toggleBtn = document.getElementById('toggle-senha');
+  const senhaInput = document.getElementById('senha');
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = senhaInput.type === 'password';
+    senhaInput.type = isHidden ? 'text' : 'password';
+  });
+
+  // Previne múltiplos envios
+  document.getElementById('login-form').addEventListener('submit', function () {
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
+  });
+</script>
+{% endblock %}

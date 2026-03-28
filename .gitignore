@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# SQLite
+*.sqlite3
+instance/
+
+# Flask session
+.flask_session/
+
+# IDE
+.vscode/
+.idea/
+
+# IMPORTANTE: A pasta static/uploads será enviada junto, pois nela constam
+# os .torrents e capas de imagens requisitados pelo usuário para o GitHub.
+!static/uploads/
