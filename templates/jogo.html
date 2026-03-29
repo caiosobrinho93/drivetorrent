@@ -75,6 +75,17 @@
       <div class="flex items-center gap-6 mb-8 mt-4 text-sm font-semibold text-gray-400">
         <div class="flex items-center gap-2"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> {{ jogo.plataforma }}</div>
         <div class="flex items-center gap-2"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg> {{ jogo.tamanho }} GB</div>
+        
+        <!-- Toggle de Curtidas -->
+        <button id="btn-curtir" onclick="toggleCurtida({{ jogo.id }})" class="flex items-center gap-1.5 transition-all duration-300 {% if curtiu %}text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]{% else %}text-gray-500 hover:text-red-400{% endif %}" data-tooltip="{% if curtiu %}Descurtir{% else %}Curtir jogo{% endif %}">
+          <svg id="icon-curtir" class="w-5 h-5 transition-transform duration-300 {% if curtiu %}fill-current scale-110{% else %}fill-none{% endif %}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg> 
+          <span id="curtidas-count" class="font-bold">{{ total_curtidas }}</span>
+        </button>
+
+        <!-- Toggle Favorito -->
+        <button id="btn-favoritar" onclick="toggleFavorito({{ jogo.id }})" class="flex items-center gap-1.5 transition-all duration-300 {% if favoritou %}text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]{% else %}text-gray-500 hover:text-yellow-400{% endif %}" data-tooltip="{% if favoritou %}Remover dos Favoritos{% else %}Adicionar aos Favoritos{% endif %}">
+          <svg id="icon-favoritar" class="w-5 h-5 transition-transform duration-300 {% if favoritou %}fill-current scale-110{% else %}fill-none{% endif %}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+        </button>
       </div>
 
       <!-- Abas de Navegação -->
@@ -141,6 +152,78 @@
         </div>
       </div>
       {% endif %}
+
+      <!-- ── SEÇÃO DE COMENTÁRIOS ── -->
+      <div id="comentarios" class="mt-16 pt-8 border-t border-surface-border">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-2xl font-bold flex items-center gap-2">
+            Comentários
+            <span class="text-sm font-medium bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg text-gray-400">{{ comentarios|length }}</span>
+          </h3>
+          <button onclick="toggleComments()" id="btn-toggle-comments" class="btn-secondary text-sm">
+            Ler Comentários
+          </button>
+        </div>
+
+        <div id="comments-container" class="hidden transition-all duration-300 transform -translate-y-4 opacity-0">
+          {% if session.get('user_id') %}
+            <form id="comment-form" action="{{ url_for('comentar_jogo', jogo_id=jogo.id) }}" method="POST" class="mb-10 bg-surface-card border border-surface-border rounded-xl p-4 focus-within:border-brand/50 transition-colors relative">
+              <div class="flex gap-4">
+                <div class="w-10 h-10 rounded-full overflow-hidden shrink-0 shadow-glow border border-brand/20 bg-surface">
+                  <img src="{{ session.get('avatar_url') or 'https://api.dicebear.com/7.x/bottts/svg?seed=' ~ session.get('username') }}" class="w-full h-full object-cover bg-surface" alt="Seu Avatar"/>
+                </div>
+                <div class="flex-1">
+                  <textarea id="comment-input" name="texto" rows="2" maxlength="500" required placeholder="Adicionar um comentário..." class="w-full bg-transparent border-0 text-white placeholder-gray-500 focus:ring-0 resize-none font-sans text-[15px] outline-none py-2" style="box-shadow: none;"></textarea>
+                  <div class="flex justify-between items-center mt-2 pt-2 border-t border-white/5 relative">
+                    <button type="button" id="btn-emoji" class="text-gray-400 hover:text-brand transition-colors p-1" data-tooltip="Inserir Emoji">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <!-- Container Emoji -->
+                    <div id="emoji-picker-container" class="absolute top-10 left-0 z-50 hidden shadow-card-hover rounded-xl overflow-hidden border border-surface-border">
+                      <emoji-picker class="dark"></emoji-picker>
+                    </div>
+                    <button type="submit" class="bg-brand text-white text-sm px-5 py-1.5 rounded-lg font-bold tracking-wide flex items-center gap-2 hover:bg-brand-hover transition-colors">
+                      Postar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          {% else %}
+            <div class="bg-surface-elevated flex items-center justify-center py-6 px-4 rounded-xl border border-dashed border-white/10 mb-10 text-gray-400 gap-4">
+              <svg class="w-6 h-6 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              <span class="font-medium">Você precisa <a href="{{ url_for('login_usuario') }}" class="text-brand hover:underline">Entrar na Comunidade</a> para comentar.</span>
+            </div>
+          {% endif %}
+
+          <div class="space-y-6">
+            {% for com in comentarios %}
+              <div class="flex gap-4 group">
+                <!-- Avatar -->
+                <div class="w-10 h-10 rounded-full bg-surface-elevated border border-white/5 shrink-0 overflow-hidden shadow-card">
+                  <img src="{{ com.avatar_url or 'https://api.dicebear.com/7.x/bottts/svg?seed=' ~ com.username }}" alt="{{ com.username }}" class="w-full h-full object-cover" />
+                </div>
+                
+                <!-- Content Bubble -->
+                <div class="flex-1 relative">
+                  <!-- Tail para efeito de balão de fala clássico -->
+                  <div class="absolute w-3 h-3 bg-surface-card border-l border-t border-surface-border transform -rotate-45 top-3 -left-1.5 z-0"></div>
+                  
+                  <div class="bg-surface-card border border-surface-border rounded-xl p-4 relative z-10 group-hover:border-white/10 transition-colors shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-bold text-white text-[15px]">{{ com.username }}</span>
+                      <span class="text-xs text-gray-500 font-medium">{{ com.data_postagem[:16] }}</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-[15px] whitespace-pre-wrap">{{ com.texto }}</p>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <p class="text-gray-500 italic text-center py-8">Ainda não há comentários. Seja o primeiro a comentar!</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -232,5 +315,213 @@
       alert("Não foi possível copiar o link magnet.");
     });
   }
+
+  async function toggleCurtida(jogoId) {
+    try {
+      const btn = document.getElementById('btn-curtir');
+      const icon = document.getElementById('icon-curtir');
+      const counter = document.getElementById('curtidas-count');
+      
+      const res = await fetch(`/api/jogo/${jogoId}/curtir`, {
+        method: 'POST'
+      });
+      
+      if (res.status === 401) {
+        alert("Você precisa estar logado para curtir!");
+        window.location.href = "{{ url_for('login_usuario') }}";
+        return;
+      }
+      
+      const data = await res.json();
+      if (data.success) {
+        counter.textContent = data.total;
+        if (data.curtiu) {
+          icon.classList.remove('fill-none');
+          icon.classList.add('fill-current', 'scale-110');
+          btn.classList.add('text-red-500', 'drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]');
+          btn.classList.remove('text-gray-500', 'hover:text-red-400');
+          btn.setAttribute('data-tooltip', 'Descurtir');
+        } else {
+          icon.classList.add('fill-none');
+          icon.classList.remove('fill-current', 'scale-110');
+          btn.classList.remove('text-red-500', 'drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]');
+          btn.classList.add('text-gray-500', 'hover:text-red-400');
+          btn.setAttribute('data-tooltip', 'Curtir jogo');
+        }
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
+  async function toggleFavorito(jogoId) {
+    try {
+      const btn = document.getElementById('btn-favoritar');
+      const icon = document.getElementById('icon-favoritar');
+      
+      const res = await fetch(`/api/jogo/${jogoId}/favoritar`, { method: 'POST' });
+      
+      if (res.status === 401) {
+        alert("Você precisa estar logado para favoritar!");
+        return;
+      }
+      
+      const data = await res.json();
+      if (data.success) {
+        if (data.favoritou) {
+          icon.classList.remove('fill-none');
+          icon.classList.add('fill-current', 'scale-110');
+          btn.classList.add('text-yellow-500', 'drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]');
+          btn.classList.remove('text-gray-500', 'hover:text-yellow-400');
+          btn.setAttribute('data-tooltip', 'Remover dos Favoritos');
+        } else {
+          icon.classList.add('fill-none');
+          icon.classList.remove('fill-current', 'scale-110');
+          btn.classList.remove('text-yellow-500', 'drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]');
+          btn.classList.add('text-gray-500', 'hover:text-yellow-400');
+          btn.setAttribute('data-tooltip', 'Adicionar aos Favoritos');
+        }
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
+  // Comentários visibilidade
+  function toggleComments() {
+    const container = document.getElementById('comments-container');
+    const btn = document.getElementById('btn-toggle-comments');
+    if(container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      // small delay to allow display:block before toggling opacity/transform
+      setTimeout(() => {
+        container.classList.remove('opacity-0', '-translate-y-4');
+        container.classList.add('opacity-100', 'translate-y-0');
+      }, 10);
+      btn.textContent = "Ocultar Comentários";
+    } else {
+      container.classList.add('opacity-0', '-translate-y-4');
+      container.classList.remove('opacity-100', 'translate-y-0');
+      setTimeout(() => container.classList.add('hidden'), 300);
+      btn.textContent = "Ler Comentários";
+    }
+  }
+
+  // Emoji Picker Bootstrap se estiver logado
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnEmoji = document.getElementById('btn-emoji');
+    const pickerContainer = document.getElementById('emoji-picker-container');
+    const input = document.getElementById('comment-input');
+    
+    if(btnEmoji && pickerContainer && input) {
+      btnEmoji.addEventListener('click', () => {
+        pickerContainer.classList.toggle('hidden');
+      });
+
+      document.querySelector('emoji-picker').addEventListener('emoji-click', event => {
+        input.value += event.detail.unicode;
+        pickerContainer.classList.add('hidden');
+        input.focus();
+      });
+
+      // Close when clicking outside
+      document.addEventListener('click', (e) => {
+        if(!pickerContainer.contains(e.target) && !btnEmoji.contains(e.target)) {
+          pickerContainer.classList.add('hidden');
+        }
+      });
+    }
+  });
+
+  // Intercept Comment form to prevent reload
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('comment-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnSubmit = form.querySelector('button[type="submit"]');
+            const input = document.getElementById('comment-input');
+            const texto = input.value.trim();
+            
+            if(!texto) return;
+
+            btnSubmit.disabled = true;
+            const originalBtnHTML = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ texto: texto })
+                });
+                
+                const data = await res.json();
+                if(data.success) {
+                    const commentData = data.comentario;
+                    // Template de balão premium idêntico ao loop do Jinja
+                    const commentHTML = `
+                      <div class="flex gap-4 group animate-fade-in new-comment">
+                        <div class="w-10 h-10 rounded-full bg-surface-elevated border border-brand/30 shrink-0 overflow-hidden shadow-glow">
+                          <img src="${commentData.avatar_url}" alt="${commentData.username}" class="w-full h-full object-cover" />
+                        </div>
+                        <div class="flex-1 relative">
+                          <div class="absolute w-3 h-3 bg-surface-card border-l border-t border-surface-border transform -rotate-45 top-3 -left-1.5 z-0"></div>
+                          <div class="bg-surface-card border border-surface-border rounded-xl p-4 relative z-10 group-hover:border-brand/20 transition-colors shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                              <span class="font-bold text-white text-[15px]">${commentData.username}</span>
+                              <span class="text-xs text-gray-500 font-medium">${commentData.data_postagem}</span>
+                            </div>
+                            <p class="text-gray-300 leading-relaxed text-[15px] whitespace-pre-wrap">${commentData.texto}</p>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                    
+                    const commentsWrapper = document.querySelector('#comments-container .space-y-6');
+                    // Remove mensagem de vazio se existir
+                    const emptyMsg = commentsWrapper.querySelector('p.italic');
+                    if(emptyMsg) emptyMsg.remove();
+
+                    commentsWrapper.insertAdjacentHTML('afterbegin', commentHTML);
+                    
+                    // Garante que o container está visível (corrige o problema de "fechar sozinho")
+                    const container = document.getElementById('comments-container');
+                    if(container.classList.contains('hidden')) {
+                        toggleComments();
+                    }
+
+                    // Clear field
+                    input.value = '';
+                    
+                    // Atualiza contador
+                    const countSpan = document.querySelector('h3.text-2xl.font-bold span.text-sm');
+                    if (countSpan) {
+                       countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                    }
+
+                    // Scroll suave para o novo comentário
+                    const newEl = commentsWrapper.querySelector('.new-comment');
+                    newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => newEl.classList.remove('new-comment'), 2000);
+
+                } else {
+                    alert(data.message || "Erro ao postar comentário.");
+                }
+            } catch(err) {
+                console.error(err);
+                alert("Ocorreu um erro ao enviar seu comentário.");
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalBtnHTML;
+            }
+        });
+    }
+  });
+
 </script>
+<script type="module" src="https://unpkg.com/emoji-picker-element@1"></script>
 {% endblock %}

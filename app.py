@@ -12,6 +12,7 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, send_from_directory, abort, jsonify
 )
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
 import database as db
@@ -84,7 +85,8 @@ def index():
         query=query,
         categoria=categoria,
         page=page,
-        per_page=config.JOGOS_POR_PAGINA
+        per_page=config.JOGOS_POR_PAGINA,
+        current_user_id=session.get("user_id")
     )
 
     total_paginas = max(1, (total + config.JOGOS_POR_PAGINA - 1) // config.JOGOS_POR_PAGINA)
@@ -112,7 +114,24 @@ def jogo_detail(jogo_id):
     except Exception:
         screenshots = []
         
-    return render_template("jogo.html", jogo=jogo, screenshots=screenshots)
+    comentarios = db.get_comentarios_jogo(jogo_id)
+    total_curtidas = db.get_curtidas_count(jogo_id)
+    curtiu = False
+    favoritou = False
+    
+    user_id = session.get("user_id")
+    if user_id:
+        curtiu = db.user_curtiu_jogo(user_id, jogo_id)
+        favoritou = db.user_favoritou_jogo(user_id, jogo_id)
+        
+    return render_template("jogo.html", 
+        jogo=jogo, 
+        screenshots=screenshots, 
+        comentarios=comentarios, 
+        total_curtidas=total_curtidas, 
+        curtiu=curtiu,
+        favoritou=favoritou
+    )
 
 
 @app.route("/download/<int:jogo_id>")
@@ -150,7 +169,8 @@ def api_search():
         query=query,
         categoria=categoria,
         page=page,
-        per_page=config.JOGOS_POR_PAGINA
+        per_page=config.JOGOS_POR_PAGINA,
+        current_user_id=session.get("user_id")
     )
 
     total_paginas = max(1, (total + config.JOGOS_POR_PAGINA - 1) // config.JOGOS_POR_PAGINA)
@@ -184,6 +204,188 @@ def api_enrich():
     return jsonify({
         "dados_rawg": dados
     })
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ROTAS DE COMUNIDADE (Usuário, Curtidas, Comentários)
+# ════════════════════════════════════════════════════════════════════════════
+
+@app.route("/cadastro", methods=["GET", "POST"])
+def cadastro_usuario():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        senha = request.form.get("senha", "")
+        
+        if not username or not senha:
+            flash("Preencha todos os campos.", "error")
+            return redirect(url_for("cadastro_usuario"))
+            
+        if db.get_user_by_username(username):
+            flash("Nome de usuário já existe.", "error")
+            return redirect(url_for("cadastro_usuario"))
+            
+        pwd_hash = generate_password_hash(senha)
+        user_id = db.add_user(username, pwd_hash)
+        session["user_id"] = user_id
+        session["username"] = username
+        session["avatar_url"] = f"https://api.dicebear.com/7.x/bottts/svg?seed={username}"
+        flash("Bem-vindo(a) à comunidade DRIVEtorrent!", "success")
+        return redirect(url_for("index"))
+
+    return render_template("auth.html", mode="cadastro")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login_usuario():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        senha = request.form.get("senha", "")
+        
+        user = db.get_user_by_username(username)
+        if user and check_password_hash(user["password_hash"], senha):
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            session["avatar_url"] = user.get("avatar_url", f"https://api.dicebear.com/7.x/bottts/svg?seed={username}")
+            flash("Login realizado com sucesso!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Usuário ou senha incorretos.", "error")
+            
+    return render_template("auth.html", mode="login")
+
+
+@app.route("/logout")
+def logout_usuario():
+    # Only clear user specific session to preserve admin if they happen to be both, though structurally rare.
+    session.pop("user_id", None)
+    session.pop("username", None)
+    session.pop("avatar_url", None)
+    flash("Sessão encerrada.", "info")
+    return redirect(url_for("index"))
+
+@app.route("/perfil", methods=["GET", "POST"])
+def user_perfil():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Faça login para acessar o perfil.", "warning")
+        return redirect(url_for("login_usuario"))
+        
+    user = db.get_user_by_id(user_id)
+        
+    if request.method == "POST":
+        action = request.form.get("action")
+        
+        if action == "update_avatar":
+            novo_avatar = request.form.get("avatar_url")
+            if novo_avatar:
+                db.update_user_avatar(user_id, novo_avatar)
+                session["avatar_url"] = novo_avatar
+                flash("Avatar atualizado com sucesso!", "success")
+                
+        elif action == "update_info":
+            novo_username = request.form.get("username", "").strip()
+            novo_email = request.form.get("email", "").strip()
+            
+            if novo_username:
+                if db.check_user_exists(novo_username, novo_email, exclude_id=user_id):
+                    flash("Nome de usuário ou email já estão em uso por outra conta.", "danger")
+                else:
+                    db.update_user_info(user_id, novo_username, novo_email)
+                    session["username"] = novo_username
+                    flash("Informações atualizadas com sucesso!", "success")
+            else:
+                flash("O nome de usuário não pode ficar vazio.", "warning")
+                
+        elif action == "update_password":
+            senha_atual = request.form.get("senha_atual")
+            nova_senha = request.form.get("nova_senha")
+            confirmar_senha = request.form.get("confirmar_senha")
+            
+            if check_password_hash(user["password_hash"], senha_atual):
+                if nova_senha == confirmar_senha and len(nova_senha) >= 4:
+                    db.update_user_password(user_id, generate_password_hash(nova_senha))
+                    flash("Senha atualizada com segurança!", "success")
+                else:
+                    flash("A nova senha não confere ou é muito curta (min. 4 chars).", "danger")
+            else:
+                flash("A senha atual informada está incorreta.", "danger")
+        
+        return redirect(url_for("user_perfil"))
+        
+    favoritos = db.get_user_favorites(user_id)
+    comentarios = db.get_user_comments_history(user_id)
+    return render_template("perfil.html", user=user, favoritos=favoritos, comentarios=comentarios)
+
+
+@app.route("/api/jogo/<int:jogo_id>/curtir", methods=["POST"])
+def api_curtir(jogo_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"success": False, "error": "unauthorized"}), 401
+    
+    status = db.toggle_curtida(user_id, jogo_id)
+    total = db.get_curtidas_count(jogo_id)
+    return jsonify({"success": True, "curtiu": status, "total": total})
+
+
+@app.route("/api/jogo/<int:jogo_id>/favoritar", methods=["POST"])
+def api_favoritar(jogo_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"success": False, "error": "unauthorized"}), 401
+    
+    status = db.toggle_favorito(user_id, jogo_id)
+    return jsonify({"success": True, "favoritou": status})
+
+
+@app.route("/jogo/<int:jogo_id>/comentar", methods=["POST"])
+def comentar_jogo(jogo_id):
+    user_id = session.get("user_id")
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json
+    
+    if not user_id:
+        if is_ajax:
+            return jsonify({"success": False, "message": "Faça login para comentar."}), 401
+        flash("Você precisa estar logado para comentar.", "error")
+        return redirect(url_for("login_usuario"))
+        
+    # Pega texto do form ou JSON
+    if request.is_json:
+        texto = request.json.get("texto", "").strip()
+    else:
+        texto = request.form.get("texto", "").strip()
+        
+    if texto:
+        db.add_comentario(user_id, jogo_id, texto)
+        
+        if is_ajax:
+            from datetime import datetime
+            data_postagem = datetime.now().strftime("%Y-%m-%d %H:%M")
+            username = session.get("username")
+            avatar_url = session.get("avatar_url") or f"https://api.dicebear.com/7.x/bottts/svg?seed={username}"
+            return jsonify({
+                "success": True, 
+                "comentario": {
+                    "texto": texto,
+                    "data_postagem": data_postagem,
+                    "username": username,
+                    "avatar_url": avatar_url
+                }
+            })
+            
+        flash("Comentário publicado!", "success")
+    else:
+        if is_ajax:
+            return jsonify({"success": False, "message": "O comentário não pode ser vazio."}), 400
+        flash("O comentário não pode estar vazio.", "error")
+        
+    return redirect(url_for("jogo_detail", jogo_id=jogo_id) + "#comentarios")
 
 
 # ════════════════════════════════════════════════════════════════════════════

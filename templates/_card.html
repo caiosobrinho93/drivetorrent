@@ -32,7 +32,19 @@
       {{ jogo.nome }}
     </h3>
     <div class="card-meta flex items-center justify-between mt-1 opacity-80 min-w-0 gap-2">
-       <span class="text-[11px] text-gray-300 truncate">{{ jogo.plataforma or 'PC' }}</span>
+       <div class="flex items-center gap-2 min-w-0">
+         <span class="text-[11px] text-gray-300 truncate">{{ jogo.plataforma or 'PC' }}</span>
+          <div class="flex items-center gap-1 text-[10px] text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+            <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span class="font-bold">{{ jogo.total_curtidas or 0 }}</span>
+          </div>
+          {% if jogo.is_favorited %}
+          <div class="flex items-center gap-1 text-[10px] text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20 drop-shadow-[0_0_5px_rgba(234,179,8,0.3)]">
+            <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            <span class="font-bold uppercase">Fav</span>
+          </div>
+          {% endif %}
+       </div>
        <span class="text-[11px] font-bold text-brand whitespace-nowrap">{{ jogo.tamanho }} GB</span>
     </div>
   </div>

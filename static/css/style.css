@@ -351,7 +351,7 @@
 .neon-border::before {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: -1px;          /* 1px de espessura conforme pedido */
   background: conic-gradient(from var(--angle), 
     transparent 0deg,      
     var(--brand) 60deg,    
@@ -383,6 +383,25 @@
 .game-card:hover.neon-border::before,
 .game-card:hover.neon-border::after {
   opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════
+   OVERRIDES DA VIEW-MODE-LIST 
+   (Sem borda girando, apenas borda laranja sólida)
+   ═══════════════════════════════════════════════════════ */
+.view-mode-list .game-card.neon-border::before,
+.view-mode-list .game-card.neon-border::after {
+  display: none !important;
+}
+
+.view-mode-list .game-card {
+  transition: border-color 0.3s ease, transform 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05); /* Padrão inativo */
+}
+
+.view-mode-list .game-card:hover {
+  border-color: var(--brand); /* Laranja sólido total no hover */
+  transform: scale(1.01);     /* Leve zoom conforme usabilidade */
 }
 
 /* Logo specific fix */
@@ -563,14 +582,56 @@ header .neon-border::after {
 
 body {
   background-color: var(--surface);
-  /* 3D background feel via radial mesh */
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(255, 107, 26, 0.05), transparent 40%),
-    radial-gradient(circle at 85% 30%, rgba(255, 107, 26, 0.03), transparent 40%);
-  background-attachment: fixed;
   color: var(--text-main);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATED BACKGROUND
+═══════════════════════════════════════════════════════ */
+.animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -10;
+  background: var(--surface);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.animated-bg::before,
+.animated-bg::after {
+  content: "";
+  position: absolute;
+  width: 80vw;
+  height: 80vh;
+  background: radial-gradient(circle, rgba(255, 107, 26, 0.07) 0%, transparent 60%);
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: bgOrbit 25s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.animated-bg::after {
+  width: 60vw;
+  height: 60vh;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.04) 0%, transparent 60%);
+  animation: bgOrbitReverse 30s ease-in-out infinite alternate;
+}
+
+@keyframes bgOrbit {
+  0% { transform: translate(-30%, -30%) scale(1); }
+  50% { transform: translate(30%, 20%) scale(1.1); }
+  100% { transform: translate(-10%, 40%) scale(0.9); }
+}
+
+@keyframes bgOrbitReverse {
+  0% { transform: translate(50%, 50%) scale(1); }
+  50% { transform: translate(10%, 70%) scale(1.2); }
+  100% { transform: translate(60%, 10%) scale(0.8); }
 }
 
 /* ═══════════════════════════════════════════════════════
