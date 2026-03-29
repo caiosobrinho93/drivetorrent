@@ -41,6 +41,7 @@
               href="{{ url_for('download_torrent', jogo_id=jogo.id) }}"
               class="btn-primary w-full justify-center gap-2 text-base font-semibold py-4 rounded-xl shadow-glow"
               id="btn-download"
+              data-tooltip="Baixar arquivo .torrent"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -115,7 +116,7 @@
       <div id="tab-imagens" class="tab-content hidden animate-fade-in">
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {% for img_url in screenshots %}
-            <a href="{{ img_url }}" target="_blank" class="block aspect-video rounded-xl overflow-hidden border border-surface-border hover:border-brand transition-colors relative group">
+            <a href="{{ img_url }}" target="_blank" class="block aspect-video rounded-xl overflow-hidden border border-surface-border hover:border-brand transition-colors relative group" data-tooltip="Abrir Imagem Original">
               <img src="{{ img_url }}" alt="Screenshot {{ loop.index }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
               <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>

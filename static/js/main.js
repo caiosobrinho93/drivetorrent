@@ -48,7 +48,7 @@ function renderCard(jogo) {
         <div class="card-badge-list hidden mb-1 truncate">
           <span class="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/10 px-1.5 py-0.5 rounded border border-brand/20">${categoria}</span>
         </div>
-        <h3 class="card-title text-[13px] font-bold text-white leading-snug line-clamp-2 mt-auto" title="${nome}">
+        <h3 class="card-title text-[13px] font-bold text-white leading-snug line-clamp-2 mt-auto" data-tooltip="${nome}">
           ${nome}
         </h3>
         <div class="card-meta flex items-center justify-between mt-1 opacity-80 min-w-0 gap-2">
@@ -99,21 +99,21 @@ function renderPaginacao(page, totalPaginas) {
   let html = '';
 
   if (page > 1) {
-    html += `<button class="btn-secondary !px-4" onclick="goToPage(${page - 1})">‹</button>`;
+    html += `<button class="btn-secondary !px-4" onclick="goToPage(${page - 1})" data-tooltip="Página Anterior">‹</button>`;
   }
 
   for (let p = 1; p <= totalPaginas; p++) {
     if (p === page) {
       html += `<span class="w-10 h-10 flex items-center justify-center rounded-xl bg-brand text-white font-semibold text-sm">${p}</span>`;
     } else if (p === 1 || p === totalPaginas || (p >= page - 2 && p <= page + 2)) {
-      html += `<button onclick="goToPage(${p})" class="w-10 h-10 flex items-center justify-center rounded-xl border border-surface-border text-gray-400 hover:border-brand hover:text-brand transition-colors text-sm">${p}</button>`;
+      html += `<button onclick="goToPage(${p})" class="w-10 h-10 flex items-center justify-center rounded-xl border border-surface-border text-gray-400 hover:border-brand hover:text-brand transition-colors text-sm" data-tooltip="Ir para página ${p}">${p}</button>`;
     } else if (p === page - 3 || p === page + 3) {
       html += `<span class="text-gray-600 px-1">…</span>`;
     }
   }
 
   if (page < totalPaginas) {
-    html += `<button class="btn-secondary !px-4" onclick="goToPage(${page + 1})">›</button>`;
+    html += `<button class="btn-secondary !px-4" onclick="goToPage(${page + 1})" data-tooltip="Próxima Página">›</button>`;
   }
 
   nav.innerHTML = html;
