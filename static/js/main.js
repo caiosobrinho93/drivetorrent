@@ -188,13 +188,16 @@ async function fetchJogos(page = 1) {
 function hideLoader(immediate = false) {
   const loader = document.getElementById('startup-loader');
   if (loader) {
-    if (immediate || sessionStorage.getItem('loaderDone')) {
+    let isDone = false;
+    try { isDone = sessionStorage.getItem('loaderDone'); } catch(e) {}
+    
+    if (immediate || isDone) {
       loader.style.display = 'none';
       loader.remove();
     } else {
       loader.classList.add('loader-hidden');
       setTimeout(() => loader.remove(), 400);
-      sessionStorage.setItem('loaderDone', 'true');
+      try { sessionStorage.setItem('loaderDone', 'true'); } catch(e) {}
     }
   }
 }
@@ -212,10 +215,15 @@ const debouncedSearch = debounce(() => {
 
 function init() {
   // Config loader
-  if (sessionStorage.getItem('loaderDone')) {
-    hideLoader(true);
-  }
+  try {
+    if (sessionStorage.getItem('loaderDone')) {
+      hideLoader(true);
+    }
+  } catch(e) {}
   
+  // Guarantee loader is hidden quickly on pages that don't invoke fetchJogos
+  setTimeout(() => hideLoader(false), 200);
+
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
 
@@ -318,11 +326,19 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// Fallback para esconder o loader
+// Fallback robusto para esconder o loader
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    try { hideLoader(false); } catch(e) { 
+      const loader = document.getElementById('startup-loader');
+      if(loader) loader.remove();
+    }
+  }, 500);
+});
+
 window.addEventListener('load', () => {
-  if (!sessionStorage.getItem('loaderDone')) {
-    setTimeout(() => hideLoader(false), 800);
-  } else {
-    hideLoader(true);
+  try { hideLoader(true); } catch(e) {
+    const loader = document.getElementById('startup-loader');
+    if(loader) loader.remove();
   }
 });
