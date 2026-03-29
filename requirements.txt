@@ -3,3 +3,4 @@ Flask-Session>=0.8.0
 requests>=2.31.0
 python-slugify>=8.0.4
 Pillow>=10.3.0
+gunicorn>=21.2.0
