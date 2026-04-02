@@ -303,6 +303,68 @@
 
 </div>
 
+<style>
+  /* 
+     Estilos customizados para o Rastreador de Imagens
+     Mantendo a estética Neon/Premium do DRIVEtorrent
+  */
+  .tracker-item-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tracker-item-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 107, 26, 0.4) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 107, 26, 0.2);
+  }
+  .tracker-overlay {
+    background: linear-gradient(to top, rgba(17, 17, 24, 0.95) 0%, rgba(17, 17, 24, 0.2) 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .tracker-item-card:hover .tracker-overlay {
+    opacity: 1;
+  }
+  #tracker-zoom-overlay {
+    animation: fadeIn 0.3s ease forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  /* Slide Up animation for Toasts */
+  .animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 107, 26, 0.2);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 107, 26, 0.4);
+  }
+</style>
+
+<!-- ══════════ LIGHTBOX / ZOOM OVERLAY ══════════ -->
+<div id="tracker-zoom-overlay" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm hidden flex items-center justify-center p-8 cursor-zoom-out">
+  <div class="relative max-w-4xl w-full h-full flex flex-col items-center justify-center pointer-events-none">
+    <img id="tracker-zoom-img" src="" class="max-w-full max-h-full object-contain shadow-2xl rounded-xl border border-white/10 pointer-events-auto">
+    <p id="tracker-zoom-title" class="text-white mt-4 font-bold text-lg pointer-events-auto bg-black/50 px-4 py-2 rounded-full"></p>
+    <button class="absolute top-0 right-0 p-4 text-white hover:text-brand transition-colors pointer-events-auto" onclick="document.getElementById('tracker-zoom-overlay').classList.add('hidden')">
+      <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+</div>
+
 <!-- ══════════ MODAL: RASTREADOR DE IMAGENS (PREMIUM) ══════════ -->
 <div id="modal-tracker" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all duration-300">
   <div class="bg-surface-card border border-white/10 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl shadow-brand/20">
@@ -347,8 +409,8 @@
       </div>
 
       <!-- Grid de itens para revisão -->
-      <div id="tracker-list-container" class="hidden space-y-4">
-        <div class="grid grid-cols-1 gap-4" id="tracker-items">
+      <div id="tracker-list-container" class="hidden">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="tracker-items">
           <!-- Itens injetados via JS -->
         </div>
       </div>
@@ -357,11 +419,14 @@
 
     <!-- Footer -->
     <div class="p-6 border-t border-white/5 flex items-center justify-between bg-surface-elevated/20">
-      <div class="text-xs text-gray-500">
-        <span id="tracker-stats">Sempre busque os melhores resultados para um visual premium.</span>
+      <div class="hidden sm:block text-xs text-gray-500">
+        <span id="tracker-stats">Selecione as melhores capas para um catálogo profissional.</span>
       </div>
-      <div class="flex gap-3">
-        <button id="btn-tracker-close" class="btn-secondary">Fechar Janela</button>
+      <div class="flex gap-3 w-full sm:w-auto">
+        <button id="btn-save-all" class="flex-1 sm:flex-none btn-primary hidden bg-green-600 hover:bg-green-500 border-green-500/30">
+          Salvar Carregados (Todos)
+        </button>
+        <button id="btn-tracker-close" class="flex-1 sm:flex-none btn-secondary">Fechar Janela</button>
       </div>
     </div>
 
@@ -602,12 +667,13 @@
     }
   });
 
-  // ─── Lógica do Rastreador de Imagens ────────────────────────────────────
+  // ─── Lógica do Rastreador de Imagens (V2: Robust & Fast) ───────────────
   const modalTracker = document.getElementById('modal-tracker');
   const btnOpenTracker = document.getElementById('btn-open-tracker');
   const btnCloseTracker = document.getElementById('btn-close-tracker');
   const btnTrackerClose = document.getElementById('btn-tracker-close');
   const btnStartTracking = document.getElementById('btn-start-tracking');
+  const btnSaveAll = document.getElementById('btn-save-all');
   const trackerEmptyState = document.getElementById('tracker-empty-state');
   const trackerListContainer = document.getElementById('tracker-list-container');
   const trackerItemsGrid = document.getElementById('tracker-items');
@@ -618,6 +684,29 @@
 
   let missingTorrents = [];
   let isTracking = false;
+  let itemsToSave = new Set();
+
+  // Utilitário de Notificação (Toast)
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return; // Fallback se não existir
+    
+    const toast = document.createElement('div');
+    toast.className = `flash-toast flash-${type} pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-xl shadow-card text-sm font-medium border border-white/10 animate-slide-up`;
+    
+    const icon = type === 'success' 
+      ? '<svg class="w-5 h-5 shrink-0 text-brand" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
+      : '<svg class="w-5 h-5 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
+
+    toast.innerHTML = `${icon}<span class="text-white">${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  }
 
   const openTracker = () => {
     modalTracker.classList.remove('hidden');
@@ -627,7 +716,9 @@
   const closeTracker = () => {
     modalTracker.classList.add('hidden');
     document.body.style.overflow = '';
-    if (isTracking) window.location.reload(); // Atualiza se algo mudou
+    if (itemsToSave.size > 0 && confirm("Deseja atualizar a página para ver as novas capas?")) {
+      window.location.reload();
+    }
   };
 
   btnOpenTracker?.addEventListener('click', openTracker);
@@ -636,26 +727,26 @@
 
   btnStartTracking?.addEventListener('click', async () => {
     btnStartTracking.disabled = true;
-    btnStartTracking.innerHTML = '<svg class="w-4 h-4 animate-spin mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Buscando...';
+    btnStartTracking.innerHTML = '<span class="animate-pulse">Buscando torrents...</span>';
     
     try {
       const res = await fetch('/admin/api/torrents_sem_capa');
       missingTorrents = await res.json();
 
       if (missingTorrents.length === 0) {
-        trackerStatusText.textContent = "Excelente! Todos os torrents já possuem imagem.";
-        btnStartTracking.innerHTML = 'Nenhum item pendente';
+        showToast("Todos os torrents já possuem capa!", "info");
+        btnStartTracking.innerHTML = 'Concluido';
         return;
       }
 
       trackerEmptyState.classList.add('hidden');
       trackerListContainer.classList.remove('hidden');
       trackerProgressContainer.classList.remove('hidden');
+      btnSaveAll.classList.remove('hidden');
       
       startTracking();
     } catch (err) {
-      console.error(err);
-      alert('Erro ao buscar lista de torrents.');
+      showToast("Erro ao conectar com o servidor.", "error");
       btnStartTracking.disabled = false;
       btnStartTracking.innerHTML = 'Iniciar Varredura';
     }
@@ -665,46 +756,67 @@
     isTracking = true;
     let current = 0;
     const total = missingTorrents.length;
+    const batchSize = 3; // Processa em pequenos grupos para não travar o server/DDG
 
-    for (const jogo of missingTorrents) {
-      current++;
-      const percent = Math.round((current / total) * 100);
-      trackerPercentage.textContent = `${percent}%`;
-      trackerProgressBar.style.width = `${percent}%`;
-      trackerStatusText.textContent = `Buscando prévias para: ${jogo.nome}`;
+    const processBatch = async (batch) => {
+      await Promise.all(batch.map(async (jogo) => {
+        const itemEl = createTrackerCard(jogo);
+        trackerItemsGrid.appendChild(itemEl);
+        await fetchPreviewsForItem(jogo.id, jogo.nome, jogo.categoria);
+        current++;
+        updateProgress(current, total);
+      }));
+    };
 
-      // Cria o card no grid
-      const itemEl = document.createElement('div');
-      itemEl.className = "bg-white/[0.03] border border-white/5 rounded-xl p-4 flex gap-4 items-center group hover:border-brand/30 transition-all";
-      itemEl.id = `tracker-item-${jogo.id}`;
-      itemEl.innerHTML = `
-        <div class="w-20 h-28 bg-white/5 rounded-lg flex-shrink-0 overflow-hidden relative border border-white/10">
-          <div class="absolute inset-0 flex items-center justify-center spinner-container">
-            <svg class="w-6 h-6 text-brand animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-          </div>
-          <img src="" class="w-full h-full object-cover hidden preview-img" />
-        </div>
-        <div class="flex-1 min-w-0">
-          <h3 class="text-white font-medium truncate mb-1" title="${jogo.nome}">${jogo.nome}</h3>
-          <p class="text-xs text-gray-500 mb-3">${jogo.categoria}</p>
-          <div class="flex gap-2">
-            <button onclick="saveItemImage(${jogo.id})" class="btn-primary !py-1 !px-3 !text-[10px] uppercase tracking-wider font-bold btn-save hidden">Salvar Esta</button>
-            <button onclick="reloadItemImage(${jogo.id}, '${jogo.nome.replace(/'/g, "\\'")}', '${jogo.categoria}')" class="btn-secondary !py-1 !px-3 !text-[10px] uppercase tracking-wider font-bold btn-reload">Trocar</button>
-          </div>
-        </div>
-      `;
-      trackerItemsGrid.appendChild(itemEl);
-
-      // Busca prévias reais
-      await fetchPreviewsForItem(jogo.id, jogo.nome, jogo.categoria);
+    for (let i = 0; i < missingTorrents.length; i += batchSize) {
+      const batch = missingTorrents.slice(i, i + batchSize);
+      await processBatch(batch);
+      // Pequeno delay entre batches para evitar rate limit
+      await new Promise(r => setTimeout(r, 600));
     }
 
-    trackerStatusText.textContent = "Varredura concluída. Escolha as melhores imagens!";
-    trackerProgressBar.classList.add('bg-green-500');
+    trackerStatusText.innerHTML = "Busca concluída! Revise e salve as melhores artes.";
+    showToast(`Busca finalizada! ${total} itens encontrados.`, "success");
+    trackerProgressBar.classList.replace('bg-brand', 'bg-green-500');
+  }
+
+  function updateProgress(current, total) {
+    const percent = Math.round((current / total) * 100);
+    trackerPercentage.textContent = `${percent}%`;
+    trackerProgressBar.style.width = `${percent}%`;
+    trackerStatusText.textContent = `Processando item ${current} de ${total}...`;
+  }
+
+  function createTrackerCard(jogo) {
+    const div = document.createElement('div');
+    div.className = "tracker-item-card relative aspect-[80/130] bg-surface-elevated rounded-xl overflow-hidden border border-white/5 group";
+    div.id = `tracker-item-${jogo.id}`;
+    div.innerHTML = `
+      <div class="absolute inset-0 flex items-center justify-center spinner-container bg-surface-card">
+        <div class="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+      </div>
+      <img src="" class="w-full h-full object-cover opacity-0 transition-opacity duration-500 preview-img" />
+      
+      <!-- Overlay de Ações -->
+      <div class="tracker-overlay absolute inset-0 flex flex-col justify-end p-2 gap-2">
+        <div class="flex items-center justify-center gap-2 mb-auto mt-auto translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+           <button onclick="zoomImage(this)" class="p-2 bg-white/10 hover:bg-brand backdrop-blur-md rounded-full text-white transition-all shadow-lg" title="Zoom">
+             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+           </button>
+           <button onclick="reloadItemImage(${jogo.id}, '${jogo.nome.replace(/'/g, "\\'")}', '${jogo.categoria}')" class="p-2 bg-white/10 hover:bg-blue-500 backdrop-blur-md rounded-full text-white transition-all shadow-lg btn-reload" title="Trocar Arte">
+             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+           </button>
+        </div>
+        <div class="text-[10px] text-white font-bold truncate drop-shadow-md px-1">${jogo.nome}</div>
+        <button onclick="saveItemImage(${jogo.id})" class="w-full btn-save py-1.5 bg-brand hover:bg-brand-hover text-[10px] uppercase font-black rounded-lg transition-all hidden">Salvar</button>
+      </div>
+    `;
+    return div;
   }
 
   async function fetchPreviewsForItem(jogoId, nome, categoria) {
     const itemEl = document.getElementById(`tracker-item-${jogoId}`);
+    if (!itemEl) return;
     const imgEl = itemEl.querySelector('.preview-img');
     const spinner = itemEl.querySelector('.spinner-container');
     const btnSave = itemEl.querySelector('.btn-save');
@@ -717,15 +829,16 @@
         itemEl.dataset.urls = JSON.stringify(data.urls);
         itemEl.dataset.currentIndex = 0;
         imgEl.src = data.urls[0];
-        imgEl.classList.remove('hidden');
-        spinner.classList.add('hidden');
-        btnSave.classList.remove('hidden');
+        imgEl.onload = () => {
+          imgEl.classList.remove('opacity-0');
+          spinner.classList.add('hidden');
+          btnSave.classList.remove('hidden');
+        };
       } else {
-        spinner.innerHTML = '<span class="text-[10px] text-gray-600">Nenhuma</span>';
+        spinner.innerHTML = '<span class="text-[9px] text-gray-500 uppercase font-bold text-center px-1">Sem Imagem</span>';
       }
     } catch (err) {
-      console.error(err);
-      spinner.innerHTML = '<span class="text-[10px] text-red-500">Erro</span>';
+      spinner.innerHTML = '<span class="text-[9px] text-red-500 font-bold">ERRO</span>';
     }
   }
 
@@ -733,66 +846,107 @@
     const itemEl = document.getElementById(`tracker-item-${jogoId}`);
     const imgEl = itemEl.querySelector('.preview-img');
     const spinner = itemEl.querySelector('.spinner-container');
+    const btnReload = itemEl.querySelector('.btn-reload');
+    
+    btnReload.classList.add('animate-spin');
     
     let urls = [];
-    try {
-      urls = JSON.parse(itemEl.dataset.urls || "[]");
-    } catch(e) {}
+    try { urls = JSON.parse(itemEl.dataset.urls || "[]"); } catch(e) {}
 
     let nextIndex = (parseInt(itemEl.dataset.currentIndex || 0) + 1);
     
     if (urls.length > 0 && nextIndex < urls.length) {
-      // Usa próxima URL já carregada
       itemEl.dataset.currentIndex = nextIndex;
       imgEl.src = urls[nextIndex];
+      setTimeout(() => btnReload.classList.remove('animate-spin'), 600);
     } else {
-      // Busca novas se acabaram ou não existem
-      imgEl.classList.add('hidden');
+      imgEl.classList.add('opacity-0');
       spinner.classList.remove('hidden');
-      spinner.innerHTML = '<svg class="w-6 h-6 text-brand animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>';
-      
       await fetchPreviewsForItem(jogoId, nome, categoria);
+      btnReload.classList.remove('animate-spin');
     }
   };
 
-  window.saveItemImage = async (jogoId) => {
+  window.zoomImage = (btn) => {
+    const card = btn.closest('.tracker-item-card');
+    const img = card.querySelector('.preview-img');
+    const title = card.querySelector('.text-[10px]').textContent;
+    const overlay = document.getElementById('tracker-zoom-overlay');
+    const zoomImg = document.getElementById('tracker-zoom-img');
+    const zoomTitle = document.getElementById('tracker-zoom-title');
+    
+    if (img.src) {
+      zoomImg.src = img.src;
+      zoomTitle.textContent = title;
+      overlay.classList.remove('hidden');
+    }
+  };
+
+  window.saveItemImage = async (jogoId, silent = false) => {
     const itemEl = document.getElementById(`tracker-item-${jogoId}`);
     const imgEl = itemEl.querySelector('.preview-img');
     const btnSave = itemEl.querySelector('.btn-save');
-    const btnReload = itemEl.querySelector('.btn-reload');
 
-    const originalText = btnSave.innerHTML;
+    if (!imgEl.src || btnSave.disabled) return false;
+
     btnSave.disabled = true;
-    btnSave.innerHTML = 'Salvando...';
+    const originalText = btnSave.innerHTML;
+    btnSave.innerHTML = '...';
 
     try {
       const res = await fetch('/admin/api/salvar_capa_escolhida', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jogo_id: jogoId,
-          img_url: imgEl.src
-        })
+        body: JSON.stringify({ jogo_id: jogoId, img_url: imgEl.src })
       });
       
       const data = await res.json();
       if (data.success) {
-        btnSave.innerHTML = '✓ Salvo';
-        btnSave.classList.replace('btn-primary', 'bg-green-500/20');
-        btnSave.classList.add('text-green-500');
-        btnReload.classList.add('hidden');
-        itemEl.classList.add('opacity-60');
-      } else {
-        alert('Erro ao salvar: ' + (data.error || 'Erro desconhecido'));
-        btnSave.disabled = false;
-        btnSave.innerHTML = originalText;
+        itemsToSave.add(jogoId);
+        btnSave.innerHTML = '✓ OK';
+        btnSave.className = "w-full py-1.5 bg-green-500/20 text-green-500 text-[10px] font-bold rounded-lg cursor-default";
+        itemEl.classList.add('grayscale-[0.5]', 'opacity-40');
+        if (!silent) showToast(`Capa de "${data.nome || 'jogo'}" salva!`);
+        return true;
       }
     } catch (err) {
-      console.error(err);
-      alert('Erro na conexão.');
-      btnSave.disabled = false;
-      btnSave.innerHTML = originalText;
+      if (!silent) showToast("Erro ao salvar.", "error");
     }
+    btnSave.disabled = false;
+    btnSave.innerHTML = originalText;
+    return false;
   };
+
+  btnSaveAll?.addEventListener('click', async () => {
+    const visibleSaveBtns = Array.from(trackerItemsGrid.querySelectorAll('.btn-save:not(.hidden):not(.cursor-default)'));
+    
+    if (visibleSaveBtns.length === 0) {
+      showToast("Nenhuma nova imagem carregada para salvar.", "info");
+      return;
+    }
+
+    if (!confirm(`Deseja salvar as artes de ${visibleSaveBtns.length} itens simultaneamente?`)) return;
+
+    btnSaveAll.disabled = true;
+    const originalContent = btnSaveAll.innerHTML;
+    btnSaveAll.innerHTML = '<span class="animate-pulse">Processando Lote...</span>';
+
+    let successCount = 0;
+    for (const btn of visibleSaveBtns) {
+      const card = btn.closest('.tracker-item-card');
+      const jogoId = card.id.replace('tracker-item-', '');
+      const success = await window.saveItemImage(parseInt(jogoId), true);
+      if (success) successCount++;
+    }
+
+    showToast(`${successCount} imagens salvas com sucesso!`, "success");
+    btnSaveAll.disabled = false;
+    btnSaveAll.innerHTML = originalContent;
+  });
+
+  // Fecha Zoom ao clicar fora
+  document.getElementById('tracker-zoom-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+  });
 </script>
 {% endblock %}
