@@ -345,18 +345,29 @@ def pesquisar_duckduckgo_info(nome_query: str, categoria: str) -> dict:
     return resultado
 
 
+def pesquisar_duckduckgo_opcoes(nome: str, categoria: str, max_results: int = 5) -> list:
+    """Busca múltiplas opções de imagem de capa via DuckDuckGo (sem baixar)."""
+    query = f"{nome} {categoria} poster cover box art high resolution"
+    urls = []
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.images(query, max_results=max_results))
+            for res in results:
+                if "image" in res:
+                    urls.append(res["image"])
+    except Exception as e:
+        logger.error("DDGS opções error: %s", e)
+    return urls
+
+
 def pesquisar_duckduckgo_capa(nome: str, categoria: str, slug: str) -> str:
     """Busca imagem de capa via DuckDuckGo e salva."""
     fallback = "covers/default.jpg"
-    query = f"{nome} {categoria} poster cover box art high resolution"
     
     try:
-        with DDGS() as ddgs:
-            results = list(ddgs.images(query, max_results=1))
-        
-        if results and "image" in results[0]:
-            img_url = results[0]["image"]
-            path = _baixar_imagem(img_url, slug)
+        urls = pesquisar_duckduckgo_opcoes(nome, categoria, max_results=1)
+        if urls:
+            path = _baixar_imagem(urls[0], slug)
             return path if path else fallback
             
     except Exception as e:

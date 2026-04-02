@@ -205,6 +205,24 @@ def delete_jogo(jogo_id):
     return dict(row) if row else None
 
 
+def get_jogos_sem_capa():
+    """Retorna todos os jogos que ainda estão com a capa padrão."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM jogos WHERE capa_path = 'covers/default.jpg' ORDER BY id DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_jogo_capa(jogo_id, capa_path):
+    """Atualiza apenas a capa de um jogo."""
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE jogos SET capa_path = ? WHERE id = ?",
+            (capa_path, jogo_id)
+        )
+
+
 # ─── COMUNIDADE (Usuários, Curtidas, Comentários) ────────────────────────────
 
 def get_user_by_username(username):

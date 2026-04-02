@@ -20,7 +20,8 @@ from utils import (
     gerar_slug, slug_unico, buscar_capa, gerar_imagem_default,
     deletar_arquivos_jogo, extensao_valida, salvar_upload,
     buscar_info_rawg, pesquisar_duckduckgo_info, pesquisar_duckduckgo_capa,
-    extrair_tamanho_torrent, limpar_nome_torrent, adivinhar_categoria
+    extrair_tamanho_torrent, limpar_nome_torrent, adivinhar_categoria,
+    pesquisar_duckduckgo_opcoes, _baixar_imagem
 )
 
 # ─── Configuração de logs ─────────────────────────────────────────────────────
@@ -449,6 +450,69 @@ def admin_api_lista_ids():
     """Retorna lista de todos os IDs para processamento em lote via AJAX."""
     all_jogos = db.get_all_jogos_simple()
     return jsonify([j["id"] for j in all_jogos])
+
+
+@app.route("/admin/api/torrents_sem_capa")
+@admin_required
+def admin_api_torrents_sem_capa():
+    """Retorna lista de jogos que estão com a capa padrão."""
+    jogos = db.get_jogos_sem_capa()
+    return jsonify([{
+        "id": j["id"],
+        "nome": j["nome"],
+        "categoria": j["categoria"],
+        "slug": j["slug"]
+    } for j in jogos])
+
+
+@app.route("/admin/api/buscar_previas")
+@admin_required
+def admin_api_buscar_previas():
+    """Busca URLs de imagens via DuckDuckGo (sem baixar)."""
+    nome = request.args.get("q")
+    categoria = request.args.get("cat", "Jogo")
+    if not nome:
+        return jsonify({"error": "Nome não fornecido"}), 400
+    
+    urls = pesquisar_duckduckgo_opcoes(nome, categoria, max_results=8)
+    return jsonify({"urls": urls})
+
+
+@app.route("/admin/api/salvar_capa_escolhida", methods=["POST"])
+@admin_required
+def admin_api_salvar_capa_escolhida():
+    """Baixa uma URL específica e define como capa do jogo."""
+    try:
+        data = request.get_json()
+        jogo_id = data.get("jogo_id")
+        img_url = data.get("img_url")
+        
+        if not jogo_id or not img_url:
+            return jsonify({"error": "Dados incompletos"}), 400
+            
+        jogo = db.get_jogo_by_id(jogo_id)
+        if not jogo:
+            return jsonify({"error": "Jogo não encontrado"}), 404
+            
+        # Baixa a imagem
+        novo_path = _baixar_imagem(img_url, jogo["slug"])
+        if not novo_path:
+            return jsonify({"error": "Falha ao baixar imagem"}), 500
+            
+        # Deleta a antiga se não for default
+        if jogo["capa_path"] and jogo["capa_path"] != "covers/default.jpg":
+            deletar_arquivos_jogo(jogo["capa_path"], "")
+            
+        # Atualiza banco
+        db.update_jogo_capa(jogo_id, novo_path)
+        
+        return jsonify({
+            "success": True, 
+            "novo_path": url_for('static', filename=novo_path)
+        })
+    except Exception as e:
+        logger.error("Erro ao salvar capa escolhida: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/admin/api/analisar_item/<int:jogo_id>", methods=["POST"])
