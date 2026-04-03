@@ -345,39 +345,56 @@ def pesquisar_duckduckgo_info(nome_query: str, categoria: str) -> dict:
     return resultado
 
 
-def pesquisar_duckduckgo_opcoes(nome: str, categoria: str, max_results: int = 5) -> list:
+def pesquisar_duckduckgo_opcoes(nome: str, categoria: str, max_results: int = 8) -> list:
     """
-    Busca múltiplas opções de imagem de capa via DuckDuckGo com sistema de fallback.
+    Busca múltiplas opções de imagem de capa via DuckDuckGo com sistema de fallback agressivo.
     Tenta progressivamente queries mais simples se nenhuma for encontrada.
     """
+    # Lista de queries da mais específica para a mais genérica
     queries = [
-        f"{nome} {categoria} poster cover box art high resolution",
-        f"{nome} {categoria} cover",
-        f"{nome} cover poster",
-        f"{nome} wallpaper",
+        f"{nome} {categoria} official poster cover art",
+        f"{nome} {categoria} box art",
+        f"{nome} original cover",
+        f"{nome} background wallpaper",
+        f"{nome} logo png",
         nome
     ]
     
     urls = []
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    }
+    
     try:
         with DDGS() as ddgs:
             for q in queries:
-                logger.info("Tentando query DDGS: %s", q)
+                logger.info("Scout: tentando query DDGS: %s", q)
                 try:
+                    # Tenta buscar imagens (max_results aumentado para dar mais opções de escolha posterior se necessário)
                     results = list(ddgs.images(q, max_results=max_results))
                     for res in results:
-                        if "image" in res:
-                            urls.append(res["image"])
+                        img_url = res.get("image")
+                        if img_url and any(img_url.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                            urls.append(img_url)
                     
-                    if urls: # Se encontrou algo nesta query, para o fallback
+                    if len(urls) >= 1:
+                        logger.info("Scout: found %d results for '%s'", len(urls), q)
                         break
                 except Exception as inner_e:
-                    logger.warning("Falha na sub-query DDGS '%s': %s", q, inner_e)
-                    continue # Tenta a próxima
+                    logger.warning("Scout: falha na sub-query DDGS '%s': %s", q, inner_e)
+                    continue
                     
     except Exception as e:
-        logger.error("DDGS geral error: %s", e)
+        logger.error("Scout: erro fatal no DDGS: %s", e)
         
+    # Se ainda assim não houver nada, tenta uma última busca ultra-genérica apenas pelo nome
+    if not urls:
+        try:
+           with DDGS() as ddgs:
+               results = list(ddgs.images(nome, max_results=2))
+               urls = [r["image"] for r in results if "image" in r]
+        except: pass
+
     return urls
 
 

@@ -174,25 +174,25 @@
             <span class="text-white">{{ message }}</span>
           </div>
         {% endfor %}
-      </div>
-      <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          const toasts = document.querySelectorAll('.flash-toast');
-          toasts.forEach((toast, idx) => {
-            setTimeout(() => {
-              toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-              toast.style.opacity = '0';
-              toast.style.transform = 'translateY(20px)';
-              setTimeout(() => toast.remove(), 400);
-            }, 3500 + (idx * 500));
+        <script>
+          document.addEventListener('DOMContentLoaded', () => {
+            const toasts = document.querySelectorAll('.flash-toast');
+            toasts.forEach((toast, idx) => {
+              setTimeout(() => {
+                toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => toast.remove(), 400);
+              }, 3500 + (idx * 500));
+            });
           });
-        });
-      </script>
-    {% endif %}
-  {% endwith %}
+        </script>
+      {% endif %}
+    {% endwith %}
+  </div>
 
   <!-- ══════════ CONTEÚDO PRINCIPAL ══════════ -->
-  <main class="flex-1">
+  <main class="flex-1 w-full overflow-x-hidden">
     {% block content %}{% endblock %}
   </main>
 

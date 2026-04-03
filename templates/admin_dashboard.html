@@ -2,934 +2,699 @@
 {% block title %}Dashboard Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-  <!-- ══════════ HEADER DO PAINEL ══════════ -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-    <div>
-      <h1 class="text-2xl font-bold">Painel Admin</h1>
-      <p class="text-gray-500 text-sm">Gerencie o catálogo de jogos</p>
-    </div>
-    <div class="flex items-center gap-3 flex-wrap">
-      <span class="text-gray-500 text-sm hidden lg:inline">{{ total }} jogo(s) cadastrado(s)</span>
-      
-      <div class="flex items-center gap-2">
-        <button id="btn-toggle-form" class="btn-primary text-xs sm:text-sm gap-2 flex items-center" data-tooltip="Ocultar/Mostrar Formulário">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Adicionar Novo
-        </button>
-        <button id="btn-toggle-bulk" class="btn-secondary text-xs sm:text-sm gap-2 flex items-center bg-white/5 border-white/10 text-white hover:bg-white/10" data-tooltip="Modo Lote (Avançado)">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0l-2 2H5l-2-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/></svg>
-          Lote
-        </button>
-        <button id="btn-open-tracker" class="btn-secondary text-xs sm:text-sm gap-2 flex items-center bg-brand/10 border-brand/20 text-brand hover:bg-brand/20" data-tooltip="Buscar Capas Automaticamente">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          Rastrear Imagens
-        </button>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <a href="{{ url_for('index') }}" target="_blank" class="btn-secondary text-xs sm:text-sm" data-tooltip="Acessar o Blog Frontend">Ver Site</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════════ FORMULÁRIO: ADICIONAR / EDITAR ══════════ -->
-  <section id="admin-form-section" class="mb-10 {% if not jogo_edit %}hidden{% endif %}">
-    {% if jogo_edit %}
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-brand">✏️ Editando: {{ jogo_edit.nome }}</h2>
-        <a href="{{ url_for('admin_dashboard') }}" class="text-xs text-gray-500 hover:text-white">Cancelar Edição</a>
-      </div>
-      <form id="form-jogo" method="POST" action="{{ url_for('admin_editar', jogo_id=jogo_edit.id) }}" enctype="multipart/form-data" novalidate>
-    {% else %}
-      <h2 class="text-lg font-semibold mb-4">Adicionar Novo Item</h2>
-      <form id="form-jogo" method="POST" action="{{ url_for('admin_adicionar') }}" enctype="multipart/form-data" novalidate>
-    {% endif %}
-
-      <div class="bg-surface-card border border-surface-border rounded-xl2 p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-
-        <!-- Campos de Mídia Extendida -->
-        <div class="lg:col-span-2">
-          <label class="form-label" for="screenshots_text">URLs das Imagens Extras (separadas por vírgula)</label>
-          <textarea id="screenshots_text" rows="2" placeholder="https://img1.jpg, https://img2.jpg" class="input-field w-full resize-none text-xs"></textarea>
-          <input type="hidden" id="screenshots" name="screenshots" value="{{ jogo_edit.screenshots if jogo_edit else '[]' }}">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full overflow-visible">
+    <!-- ══════════ HEADER DO DASHBOARD ══════════ -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div class="space-y-1">
+            <h1 class="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                <span class="w-2 h-8 bg-brand rounded-full shadow-[0_0_15px_rgba(255,107,26,0.5)]"></span>
+                PAINEL <span class="text-brand">ADMIN</span>
+            </h1>
+            <p class="text-gray-400 text-sm font-medium uppercase tracking-widest opacity-70">Controle de Acervo & Automação</p>
         </div>
 
-        <div>
-          <label class="form-label" for="youtube_url">URL do Trailer (YouTube)</label>
-          <input id="youtube_url" name="youtube_url" type="url" placeholder="https://youtube.com/watch?v=..." class="input-field w-full text-xs" value="{{ jogo_edit.youtube_url if jogo_edit else '' }}">
+        <div class="flex flex-wrap items-center gap-3">
+            <button id="btn-toggle-form" class="btn-primary group !py-2.5 !px-5 whitespace-nowrap">
+                <svg class="w-5 h-5 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Novo Torrent</span>
+            </button>
+            <button id="btn-toggle-bulk" class="btn-secondary group !py-2.5 !px-5 whitespace-nowrap">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0l-2 2H5l-2-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/></svg>
+                <span>Lote (.torrent)</span>
+            </button>
+            <button id="btn-open-tracker" class="relative overflow-hidden group btn-secondary !border-brand/40 !bg-brand/5 hover:!bg-brand hover:!text-white !py-2.5 !px-5 !text-brand transition-all whitespace-nowrap">
+                <div class="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="font-bold">Rastreador de Imagens</span>
+            </button>
+            <a href="{{ url_for('admin_logout') }}" class="btn-secondary !text-red-400 border-red-900/30 hover:!bg-red-500/10 !py-2.5">
+                Sair
+            </a>
         </div>
+    </header>
 
-        <!-- Nome -->
-        <div class="lg:col-span-2">
-          <label class="form-label" for="nome">Nome do Jogo *</label>
-          <input id="nome" name="nome" type="text" required placeholder="Ex: Elden Ring"
-            class="input-field w-full" autocomplete="off"
-            value="{{ jogo_edit.nome if jogo_edit else '' }}"
-          />
-          <div id="enrich-status" class="mt-1 text-xs text-brand hidden flex items-center gap-1">
-            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-            <span>Buscando informações automáticas...</span>
-          </div>
-        </div>
+    <!-- ══════════ FORMULÁRIO (ADD/EDIT) ══════════ -->
+    <section id="admin-form-section" class="{% if not jogo_edit %}hidden{% endif %} mb-12 animate-fadeIn">
+        <div class="glass-card rounded-2xl border-surface-border p-6 md:p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand to-transparent opacity-50"></div>
+            
+            <h2 class="text-xl font-bold text-white mb-8 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                {% if jogo_edit %}Editando: <span class="text-brand">{{ jogo_edit.nome }}</span>{% else %}Adicionar Novo Torrent{% endif %}
+            </h2>
 
-        <!-- Tamanho -->
-        <div>
-          <label class="form-label" for="tamanho">Tamanho (GB)</label>
-          <input id="tamanho" name="tamanho" type="number" step="0.1" min="0" placeholder="Ex: 45.5"
-            class="input-field w-full"
-            value="{{ jogo_edit.tamanho if jogo_edit else '' }}"
-          />
-        </div>
+            <form action="{% if jogo_edit %}{{ url_for('admin_editar', jogo_id=jogo_edit.id) }}{% else %}{{ url_for('admin_adicionar') }}{% endif %}" 
+                  method="POST" enctype="multipart/form-data" id="form-jogo" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="form-label" for="nome">Título do Conteúdo *</label>
+                        <input type="text" name="nome" id="nome" required placeholder="Ex: Cyberpunk 2077"
+                               class="input-field w-full" value="{{ jogo_edit.nome if jogo_edit else '' }}">
+                        <div id="enrich-status" class="mt-2 text-[10px] font-bold uppercase flex items-center gap-2 text-brand hidden"></div>
+                    </div>
 
-        <!-- Categoria -->
-        <div>
-          <label class="form-label" for="categoria">Categoria *</label>
-          <select id="categoria" name="categoria" class="input-field w-full" required>
-            <option value="">Selecione...</option>
-            {% for c in categorias %}
-              <option value="{{ c }}" {% if jogo_edit and jogo_edit.categoria == c %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-          </select>
-        </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="form-label" for="categoria">Categoria</label>
+                            <select name="categoria" id="categoria" class="input-field w-full">
+                                {% for cat in categorias %}
+                                <option value="{{ cat }}" {% if jogo_edit and jogo_edit.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="tamanho">Tamanho (Ex: 45 GB)</label>
+                            <input type="text" name="tamanho" id="tamanho" placeholder="45 GB"
+                                   class="input-field w-full" value="{{ jogo_edit.tamanho if jogo_edit else '' }}">
+                        </div>
+                    </div>
 
-
-
-        <!-- Upload Capa -->
-        <div>
-          <label class="form-label">Capa (imagem)</label>
-          <div class="file-drop-zone" id="capa-drop">
-            <input type="file" id="capa" name="capa" accept=".jpg,.jpeg,.png,.webp" class="hidden" />
-            <label for="capa" class="cursor-pointer flex flex-col items-center gap-1 p-3">
-              <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-              <span class="text-xs text-gray-500" id="capa-label">
-                {% if jogo_edit and jogo_edit.capa_path != 'covers/default.jpg' %}Atual: {{ jogo_edit.capa_path.split('/')[-1] }}{% else %}Clique ou SteamGridDB{% endif %}
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Upload Torrent -->
-        <div>
-          <label class="form-label">Arquivo .torrent</label>
-          <div class="file-drop-zone" id="torrent-drop">
-            <input type="file" id="torrent" name="torrent" accept=".torrent" class="hidden" />
-            <label for="torrent" class="cursor-pointer flex flex-col items-center gap-1 p-3">
-              <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-              </svg>
-              <span class="text-xs text-gray-500" id="torrent-label">
-                {% if jogo_edit and jogo_edit.torrent_path %}Atual: {{ jogo_edit.torrent_path.split('/')[-1] }}{% else %}Clique para selecionar{% endif %}
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Descrição (full width) -->
-        <div class="sm:col-span-2 lg:col-span-3">
-          <label class="form-label" for="descricao">Descrição</label>
-          <textarea id="descricao" name="descricao" rows="4"
-            placeholder="Sinopse, requisitos, informações do release..."
-            class="input-field w-full resize-none"
-          >{{ jogo_edit.descricao if jogo_edit else '' }}</textarea>
-        </div>
-
-        <!-- Botões -->
-        <div class="sm:col-span-2 lg:col-span-3 flex items-center gap-3 flex-wrap">
-          <button type="submit" id="btn-submit" class="btn-primary gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            {% if jogo_edit %}Salvar Alterações{% else %}Adicionar Jogo{% endif %}
-          </button>
-          {% if jogo_edit %}
-            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Cancelar</a>
-          {% endif %}
-        </div>
-
-      </div>
-    </form>
-  </section>
-  <hr class="border-surface-border mb-10 opacity-30">
-
-  <!-- ══════════ BULK UPLOAD (Lote) ══════════ -->
-  <section id="admin-bulk-section" class="mb-10 hidden">
-    <div class="flex items-center gap-3 mb-4">
-      <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-      </div>
-      <h2 class="text-lg font-semibold">Adicionar em Lote (.torrent)</h2>
-    </div>
-
-    <div class="bg-surface-card border border-surface-border rounded-xl2 p-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-        
-        <!-- Categoria do Lote -->
-        <div>
-          <label class="form-label">Categoria do Lote *</label>
-          <select id="bulk-categoria" class="input-field w-full">
-            <option value="Jogo">Jogos</option>
-            <option value="Curso">Cursos</option>
-            <option value="Software">Softwares</option>
-          </select>
-        </div>
-
-        <!-- Dropzone Múltiplo -->
-        <div class="md:col-span-2">
-          <label class="form-label">Selecionar Arquivos .torrent *</label>
-          <div class="file-drop-zone h-14" id="bulk-drop">
-            <input type="file" id="bulk-files" multiple accept=".torrent" class="hidden" />
-            <label for="bulk-files" class="cursor-pointer flex items-center justify-center gap-2 h-full">
-              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              <span class="text-sm text-gray-400" id="bulk-label">Selecionar vários arquivos</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="md:col-span-3">
-          <button type="button" id="btn-bulk-process" class="btn-primary w-full md:w-auto px-10">
-            Processar Lote Agora
-          </button>
-        </div>
-      </div>
-
-      <!-- Log de Progresso -->
-      <div id="bulk-progress-container" class="mt-6 hidden border-t border-surface-border pt-6">
-        <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
-          <span id="bulk-status-title">Processando...</span>
-          <span class="text-xs font-normal text-gray-500" id="bulk-count">0/0</span>
-        </h3>
-        <div class="max-h-48 overflow-y-auto space-y-2 pr-2" id="bulk-log">
-          <!-- Logs dinâmicos -->
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════ BUSCA NA LISTAGEM ══════════ -->
-  <div class="flex items-center gap-3 mb-5">
-    <h2 class="text-lg font-semibold flex-1">Jogos Cadastrados</h2>
-    <form method="GET" action="{{ url_for('admin_dashboard') }}" class="flex gap-2">
-      <input type="text" name="q" value="{{ query }}" placeholder="Buscar..." class="input-field !py-2 !text-sm w-48" />
-      <button type="submit" class="btn-secondary !py-2 !text-sm">Buscar</button>
-      {% if query %}<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary !py-2 !text-sm">✕</a>{% endif %}
-    </form>
-  </div>
-
-
-  <!-- ══════════ TABELA DE JOGOS ══════════ -->
-  <div class="bg-surface-card border border-surface-border rounded-xl2 overflow-hidden">
-    {% if jogos %}
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm" id="admin-table">
-          <thead class="bg-surface-elevated border-b border-surface-border">
-            <tr>
-              <th class="th-cell w-12">#</th>
-              <th class="th-cell w-14">Capa</th>
-              <th class="th-cell">Nome</th>
-              <th class="th-cell hidden sm:table-cell">Categoria</th>
-              <th class="th-cell hidden lg:table-cell">Tamanho</th>
-              <th class="th-cell hidden lg:table-cell">Data</th>
-              <th class="th-cell text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-border">
-            {% for jogo in jogos %}
-            <tr class="hover:bg-surface-elevated/50 transition-colors" id="row-{{ jogo.id }}">
-              <td class="td-cell text-gray-600">{{ jogo.id }}</td>
-              <td class="td-cell">
-                <img
-                  src="{{ url_for('static', filename=jogo.capa_path) }}"
-                  alt="{{ jogo.nome }}"
-                  class="w-10 h-14 object-cover rounded-lg"
-                  onerror="this.src='{{ url_for('static', filename='covers/default.jpg') }}'"
-                  loading="lazy"
-                />
-              </td>
-              <td class="td-cell font-medium text-white max-w-[200px] truncate" title="{{ jogo.nome }}">
-                <a href="{{ url_for('jogo_detail', jogo_id=jogo.id) }}" target="_blank"
-                   class="hover:text-brand transition-colors">{{ jogo.nome }}</a>
-              </td>
-              <td class="td-cell hidden sm:table-cell">
-                <span class="badge-platform !text-xs">{{ jogo.categoria }}</span>
-              </td>
-              <td class="td-cell hidden lg:table-cell text-gray-400">{{ jogo.tamanho }} GB</td>
-              <td class="td-cell hidden lg:table-cell text-gray-500 text-xs">{{ jogo.data_adicao[:10] }}</td>
-              <td class="td-cell text-right">
-                <div class="flex items-center justify-end gap-2">
-                  <!-- Editar -->
-                  <a href="{{ url_for('admin_dashboard', edit=jogo.id) }}" class="action-btn text-brand hover:text-white" data-tooltip="Editar Torrent">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                  </a>
-                  
-                  <!-- Excluir -->
-                  <form method="POST" action="{{ url_for('admin_excluir', jogo_id=jogo.id) }}" class="inline-block relative">
-                    <button type="button" class="action-btn text-red-500 hover:text-white" onclick="document.getElementById('confirm-{{ jogo.id }}').classList.remove('hidden')" data-tooltip="Excluir Definitivamente">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                  </form>
+                    <div>
+                        <label class="form-label" for="descricao">Descrição Completa</label>
+                        <textarea name="descricao" id="descricao" rows="6" placeholder="Resumo técnico ou sinopse..."
+                                  class="input-field w-full resize-none">{{ jogo_edit.descricao if jogo_edit else '' }}</textarea>
+                    </div>
                 </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
 
-      <!-- Paginação admin -->
-      {% if total_paginas > 1 %}
-        <div class="border-t border-surface-border px-6 py-4 flex items-center justify-between">
-          <span class="text-gray-500 text-sm">Página {{ page }} de {{ total_paginas }}</span>
-          <div class="flex gap-2">
-            {% if page > 1 %}
-              <a href="?page={{ page - 1 }}&q={{ query }}" class="btn-secondary !py-1.5 !text-xs">← Anterior</a>
-            {% endif %}
-            {% if page < total_paginas %}
-              <a href="?page={{ page + 1 }}&q={{ query }}" class="btn-secondary !py-1.5 !text-xs">Próxima →</a>
-            {% endif %}
-          </div>
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                             <label class="form-label">Capa Manual</label>
+                             <div class="file-drop-zone h-[120px] relative group" onclick="document.getElementById('capa').click()">
+                                <input type="file" name="capa" id="capa" accept="image/*" class="hidden">
+                                <div class="text-center group-hover:scale-105 transition-transform">
+                                    <svg class="w-6 h-6 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <p id="capa-label" class="text-[10px] text-gray-500 uppercase font-black px-2 line-clamp-1">Selecionar Imagem</p>
+                                </div>
+                             </div>
+                        </div>
+                        <div>
+                             <label class="form-label">Arquivo .torrent</label>
+                             <div class="file-drop-zone h-[120px] relative group" onclick="document.getElementById('torrent').click()">
+                                <input type="file" name="torrent" id="torrent" accept=".torrent" class="hidden">
+                                <div class="text-center group-hover:scale-105 transition-transform">
+                                    <svg class="w-6 h-6 text-brand mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                    <p id="torrent-label" class="text-[10px] text-gray-500 uppercase font-black px-2 line-clamp-1">Selecionar Torrent</p>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+
+                    <div>
+                      <label class="form-label">Screenshots (JSON ou lista de URLs)</label>
+                      <textarea id="screenshots_text" rows="2" class="input-field w-full text-[10px] font-mono" placeholder="URL1, URL2..."></textarea>
+                      <input type="hidden" name="screenshots" id="screenshots" value="{{ jogo_edit.screenshots if jogo_edit else '[]' }}">
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="youtube_url">Link do Trailer (Official Youtube)</label>
+                        <input type="text" name="youtube_url" id="youtube_url" placeholder="https://youtube.com/embed/..."
+                               class="input-field w-full" value="{{ jogo_edit.youtube_url if jogo_edit else '' }}">
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 flex justify-end gap-3 pt-6 border-t border-white/5">
+                    {% if jogo_edit %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary !py-3 !px-8">Cancelar Edição</a>
+                    {% endif %}
+                    <button type="submit" id="btn-submit" class="btn-primary !py-4 !px-16 shadow-[0_0_20px_rgba(255,107,26,0.2)] font-black uppercase italic tracking-wider">
+                        {% if jogo_edit %}Salvar Alterações{% else %}Publicar Agora{% endif %}
+                    </button>
+                </div>
+            </form>
         </div>
-      {% endif %}
+    </section>
 
-    {% else %}
-      <div class="text-center py-16">
-        <p class="text-gray-500">Nenhum jogo cadastrado ainda.</p>
-      </div>
-    {% endif %}
-  </div>
+    <!-- ══════════ SEÇÃO DE LOTE ══════════ -->
+    <section id="admin-bulk-section" class="hidden mb-12 animate-fadeIn">
+        <div class="glass-card rounded-2xl border-brand/20 p-8 space-y-8">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-brand/10 border border-brand/30 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0l-2 2H5l-2-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/></svg>
+                </div>
+                <div>
+                   <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Processamento em Lote</h2>
+                   <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Automação massiva via .torrent</p>
+                </div>
+            </div>
 
-  <!-- ══════════ MODAIS DE CONFIRMAÇÃO DE EXCLUSÃO ══════════ -->
-  {% for jogo in jogos %}
-  <div id="confirm-{{ jogo.id }}" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
-    <div class="bg-surface-card border border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl shadow-red-500/10">
-      <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 mb-4">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      </div>
-      <h3 class="text-white font-bold text-lg mb-2">Excluir Torrent?</h3>
-      <p class="text-gray-400 text-sm mb-6">Você está prestes a excluir <span class="text-white font-medium">"{{ jogo.nome }}"</span>. Esta ação não poderá ser desfeita.</p>
-      <div class="grid grid-cols-2 gap-3">
-        <button type="button" onclick="document.getElementById('confirm-{{ jogo.id }}').classList.add('hidden')" class="btn-secondary">Cancelar</button>
-        <form method="POST" action="{{ url_for('admin_excluir', jogo_id=jogo.id) }}">
-          <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-red-600/20">Excluir</button>
-        </form>
-      </div>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-3">
+                    <div class="file-drop-zone !h-40 group" onclick="document.getElementById('bulk-files').click()">
+                        <input type="file" id="bulk-files" multiple accept=".torrent" class="hidden">
+                        <div class="text-center group-hover:scale-105 transition-all">
+                            <svg class="w-10 h-10 text-brand/30 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <p id="bulk-label" class="text-gray-300 font-bold">SOLTE SEUS ARQUIVOS AQUI</p>
+                            <p class="text-[10px] text-gray-500 uppercase mt-2">Os metadados e capas serão buscados via IA</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-between gap-4">
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 space-y-3">
+                        <label class="form-label">Categoria de Destino</label>
+                        <select id="bulk-categoria" class="input-field w-full">
+                            {% for cat in categorias %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button id="btn-bulk-process" class="btn-primary w-full !py-5 shadow-lg shadow-brand/20 uppercase font-black italic">
+                        Processar Agora
+                    </button>
+                </div>
+            </div>
+
+            <div id="bulk-progress-container" class="hidden mt-8 p-6 bg-black/40 rounded-2xl border border-white/5 space-y-4">
+                <div class="flex justify-between items-center bg-surface-elevated/40 p-3 rounded-lg border border-white/5">
+                    <div class="flex items-center gap-3">
+                        <span id="bulk-status-title" class="text-xs font-black text-brand uppercase italic tracking-wider animate-pulse">Processando...</span>
+                    </div>
+                    <span id="bulk-count" class="text-xs font-mono text-gray-400">0/0</span>
+                </div>
+                <div id="bulk-log" class="max-h-64 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                    <!-- Logs via JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════ TABELA DE JOGOS ══════════ -->
+    <div class="bg-surface-card border border-surface-border rounded-2xl overflow-hidden shadow-2xl relative mt-4">
+        <div class="absolute inset-x-0 h-10 top-0 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none"></div>
+        <div class="overflow-x-auto min-h-[400px]">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-elevated/80 backdrop-blur-md border-b border-white/5">
+                        <th class="th-cell w-20">Preview</th>
+                        <th class="th-cell">Torrent / Informação</th>
+                        <th class="th-cell hidden md:table-cell">Categoria</th>
+                        <th class="th-cell hidden lg:table-cell">Peso</th>
+                        <th class="th-cell hidden xl:table-cell">Enviado</th>
+                        <th class="th-cell text-right pr-8">Dashboard</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.03]">
+                    {% for jogo in jogos %}
+                    <tr class="hover:bg-white/[0.01] group/row transition-all duration-300">
+                        <td class="td-cell py-4">
+                            <div class="w-14 h-20 rounded-lg overflow-hidden bg-surface-elevated border border-white/10 group-hover/row:border-brand/40 transition-colors shadow-lg shadow-black/40 relative">
+                                <img src="{{ url_for('get_cover', filename=jogo.capa) if jogo.capa else url_for('static', filename='img/default-cover.jpg') }}" 
+                                     class="w-full h-full object-cover group-hover/row:scale-110 transition-transform duration-700">
+                                {% if not jogo.capa %}
+                                    <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center">
+                                       <span class="text-[8px] font-black text-white uppercase tracking-tighter">SEM CAPA</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="td-cell">
+                            <div class="max-w-xs md:max-w-sm">
+                                <h3 class="font-bold text-white group-hover/row:text-brand transition-colors truncate text-base leading-tight">{{ jogo.nome }}</h3>
+                                <div class="flex items-center gap-2 mt-1.5 opacity-60">
+                                    <span class="text-[10px] font-mono text-gray-400">#{{ jogo.id }}</span>
+                                    <span class="text-[10px] text-gray-500 uppercase tracking-widest">• {{ jogo.downloads or 0 }} DL</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="td-cell hidden md:table-cell">
+                            <span class="px-2 py-0.5 bg-brand/10 border border-brand/20 rounded text-[10px] font-black text-brand uppercase italic">{{ jogo.categoria }}</span>
+                        </td>
+                        <td class="td-cell hidden lg:table-cell">
+                            <span class="text-xs font-mono font-medium text-gray-300">{{ jogo.tamanho or 'N/A' }}</span>
+                        </td>
+                        <td class="td-cell hidden xl:table-cell">
+                            <span class="text-[10px] text-gray-500 font-bold uppercase">{{ jogo.created_at.strftime('%d %b %Y') if jogo.created_at else '--' }}</span>
+                        </td>
+                        <td class="td-cell text-right pr-8">
+                            <div class="inline-flex items-center gap-3">
+                                <a href="{{ url_for('admin_dashboard', edit=jogo.id) }}" 
+                                   class="action-btn text-brand/70 hover:text-brand hover:!bg-brand/10" title="Editar">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                </a>
+                                <button onclick="window.confirmDelete({{ jogo.id }}, '{{ jogo.nome | replace("'", "\\'") }}')" 
+                                        class="action-btn text-red-500/70 hover:text-red-500 hover:!bg-red-500/10" title="Apagar">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
-  {% endfor %}
+</div>
 
-</div> <!-- FIM DO CONTAINER PRINCIPAL (max-w-7xl) -->
+<!-- ══════════ MODAIS DE CONFIRMAÇÃO ══════════ -->
+<div id="delete-modal" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fadeIn">
+    <div class="glass-card max-w-sm w-full p-10 rounded-[2rem] border-red-500/30 flex flex-col items-center text-center">
+        <div class="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <h3 class="text-3xl font-black text-white mb-3 uppercase italic tracking-tighter">Excluir Base?</h3>
+        <p class="text-gray-400 text-sm mb-10">Você está prestes a remover <span id="delete-item-name" class="text-white font-bold"></span> permanentemente. Confirmar limpeza total?</p>
+        
+        <form id="delete-form" action="" method="POST" class="w-full flex flex-col gap-3">
+            <button type="submit" class="w-full btn-primary !bg-red-600 hover:!bg-red-500 !py-4 shadow-xl shadow-red-600/20 uppercase font-black italic tracking-widest">Sim, Deletar Tudo</button>
+            <button type="button" onclick="document.getElementById('delete-modal').classList.add('hidden')" 
+                    class="w-full btn-secondary !py-4 !border-transparent hover:!text-white">Abortar</button>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════ MODAL RASTREADOR V3.2 ══════════ -->
+<div id="modal-tracker" class="fixed inset-0 z-[1500] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-fadeIn">
+    <div class="bg-[#0A0A0F] w-full max-w-7xl max-h-[92vh] rounded-[2.5rem] border border-white/5 shadow-[0_0_100px_rgba(0,0,0,1)] overflow-hidden flex flex-col relative">
+        <!-- Close button flutuante -->
+        <button id="btn-close-tracker" class="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 hover:rotate-90 rounded-full text-white transition-all z-50">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+
+        <!-- Header do Tracker -->
+        <div class="p-10 pb-6 border-b border-white/5 shrink-0 relative bg-gradient-to-b from-brand/5 to-transparent">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-3 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full mb-2">
+                        <span class="w-2 h-2 bg-brand rounded-full animate-pulse shadow-[0_0_8px_#FF6B1A]"></span>
+                        <span class="text-[9px] font-black text-brand uppercase tracking-[0.3em]">AI Scouting Active</span>
+                    </div>
+                    <h2 class="text-5xl font-black text-white uppercase italic tracking-tighter leading-none">ART <span class="text-brand">SCOUT</span></h2>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-widest">Sincronização inteligente de bibliotecas visuais</p>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <button id="btn-save-all" class="hidden btn-primary !bg-green-600 hover:!bg-green-500 !py-4 !px-12 shadow-[0_0_30px_rgba(22,163,74,0.3)] uppercase font-black italic">
+                        Salvar Todos Carregados
+                    </button>
+                    <button id="btn-start-tracking" class="btn-primary !px-14 !py-4 shadow-[0_0_30px_rgba(255,107,26,0.2)] uppercase font-black italic">
+                        Iniciar Varredura Total
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progresso V3 -->
+            <div id="tracker-progress-container" class="hidden mt-10 space-y-3">
+                <div class="flex justify-between items-end">
+                    <div class="space-y-1">
+                        <p id="tracker-status-text" class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Preparando Motores...</p>
+                        <div id="tracker-item-loading" class="text-xs text-white font-mono opacity-50 truncate max-w-sm">Aguardando comando...</div>
+                    </div>
+                    <div class="text-right">
+                        <span id="tracker-percentage" class="text-3xl font-black text-brand italic tracking-tighter">0%</span>
+                    </div>
+                </div>
+                <div class="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    <div id="tracker-progress-bar" class="h-full bg-gradient-to-r from-brand to-brand/60 w-0 transition-all duration-700 relative">
+                        <div class="absolute inset-0 bg-white/20 animate-shimmer scale-y-150"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Resultados -->
+        <div id="tracker-list-container" class="flex-1 overflow-y-auto p-10 pt-0 custom-scrollbar">
+            <!-- Empty State -->
+            <div id="tracker-empty-state" class="h-96 flex flex-col items-center justify-center text-center">
+                <div class="w-24 h-24 bg-surface-elevated/40 border border-white/5 rounded-[2rem] flex items-center justify-center mb-6 text-brand/10">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-400 uppercase italic tracking-tighter">Nenhuma varredura em curso</h3>
+                <p class="text-gray-600 text-xs mt-2 max-w-sm font-medium">Inicie a varredura para localizar as melhores artes de capa para seus torrents offline.</p>
+            </div>
+
+            <!-- Grid de Itens Encontrados -->
+            <div id="tracker-items" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-5 py-10">
+                <!-- Populado via JS -->
+            </div>
+        </div>
+
+        <div class="p-4 bg-black/40 border-t border-white/5 text-center shrink-0">
+            <button id="btn-tracker-close" class="text-[9px] font-black text-gray-600 hover:text-white uppercase tracking-[0.4em] transition-all">Sair do Painel Art Scout</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lighbox Zoom -->
+<div id="tracker-zoom-overlay" class="fixed inset-0 z-[2000] hidden flex items-center justify-center p-8 bg-black/95 backdrop-blur-xl animate-fadeIn">
+    <div class="relative max-w-4xl w-full flex flex-col items-center">
+        <button onclick="this.closest('#tracker-zoom-overlay').classList.add('hidden')" class="absolute -top-12 right-0 text-white hover:text-brand transition-colors">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div class="bg-surface-card p-2 rounded-2xl border border-white/10 shadow-2xl overflow-hidden mb-4">
+            <img id="tracker-zoom-img" src="" class="max-h-[70vh] w-auto rounded-xl">
+        </div>
+        <h3 id="tracker-zoom-title" class="text-2xl font-black text-white italic uppercase tracking-tighter text-center"></h3>
+    </div>
+</div>
 
 <style>
-  /* Estilos customizados para o Rastreador de Imagens */
-  .tracker-item-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-  .tracker-item-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(255, 107, 26, 0.4) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 107, 26, 0.2);
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+  .animate-shimmer { animation: shimmer 2s infinite linear; }
+  
+  .glass-card {
+    background: rgba(13, 13, 18, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 107, 26, 0.1);
   }
-  .tracker-overlay {
-    background: linear-gradient(to top, rgba(17, 17, 24, 0.95) 0%, rgba(17, 17, 24, 0.2) 100%);
+
+  /* Scout Card Refinement */
+  .scout-card {
+    width: 80px;
+    height: 130px;
+    background: #0d0d12;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,107,26,0.1);
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .scout-card:hover {
+    transform: translateY(-4px) scale(1.08);
+    border-color: var(--brand);
+    box-shadow: 0 10px 25px rgba(255,107,26,0.3);
+    z-index: 50;
+  }
+  .scout-overlay {
+    background: linear-gradient(to top, rgba(13,13,18,0.95) 0%, rgba(13,13,18,0.4) 60%, transparent 100%);
     opacity: 0;
     transition: opacity 0.2s ease;
   }
-  .tracker-item-card:hover .tracker-overlay { opacity: 1; }
+  .scout-card:hover .scout-overlay { opacity: 1; }
   
-  #tracker-zoom-overlay { animation: fadeIn 0.3s ease forwards; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  
-  .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+  .btn-scout-action {
+    padding: 4px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    color: white;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.1);
   }
-  
-  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 107, 26, 0.2); border-radius: 10px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 107, 26, 0.4); }
+  .btn-scout-action:hover {
+    background: var(--brand);
+    border-color: var(--brand);
+    transform: scale(1.1);
+  }
 </style>
-
-<!-- ══════════ LIGHTBOX / ZOOM OVERLAY ══════════ -->
-<div id="tracker-zoom-overlay" class="fixed inset-0 z-[300] bg-black/95 backdrop-blur-sm hidden flex items-center justify-center p-8 cursor-zoom-out">
-  <div class="relative max-w-4xl w-full h-full flex flex-col items-center justify-center pointer-events-none">
-    <img id="tracker-zoom-img" src="" class="max-w-full max-h-full object-contain shadow-2xl rounded-xl border border-white/10 pointer-events-auto">
-    <p id="tracker-zoom-title" class="text-white mt-4 font-bold text-lg pointer-events-auto bg-black/50 px-4 py-2 rounded-full"></p>
-    <button class="absolute top-0 right-0 p-4 text-white hover:text-brand transition-colors pointer-events-auto" onclick="document.getElementById('tracker-zoom-overlay').classList.add('hidden')">
-      <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-    </button>
-  </div>
-</div>
-
-<!-- ══════════ MODAL: RASTREADOR DE IMAGENS ══════════ -->
-<div id="modal-tracker" class="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all duration-300">
-  <div class="bg-surface-card border border-white/10 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl shadow-brand/20">
-    <!-- Header -->
-    <div class="p-6 border-b border-white/5 flex items-center justify-between bg-surface-elevated/50">
-      <div>
-        <h2 class="text-xl font-bold text-white flex items-center gap-2">
-           <span class="p-1.5 rounded-lg bg-brand/20 text-brand">
-             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-           </span>
-           Rastreador de Imagens
-        </h2>
-        <p class="text-xs text-gray-400 mt-1">Buscando artes de capa para o catálogo...</p>
-      </div>
-      <button id="btn-close-tracker" class="p-2 hover:bg-white/5 rounded-full text-gray-500 hover:text-white transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-
-    <!-- Body -->
-    <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-      <div id="tracker-progress-container" class="hidden">
-        <div class="flex items-center justify-between text-xs mb-2">
-          <span class="text-gray-400" id="tracker-status-text">Iniciando...</span>
-          <span class="text-brand font-mono" id="tracker-percentage">0%</span>
-        </div>
-        <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-          <div id="tracker-progress-bar" class="h-full bg-brand w-0 transition-all duration-500 shadow-[0_0_8px_rgba(255,100,30,0.5)]"></div>
-        </div>
-      </div>
-
-      <div id="tracker-empty-state" class="text-center py-20 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
-        <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <p class="text-gray-400 mb-6 font-medium">Pronto para atualizar suas capas?</p>
-        <button id="btn-start-tracking" class="btn-primary px-8 py-3 text-base shadow-lg shadow-brand/20">Iniciar Varredura</button>
-      </div>
-
-      <div id="tracker-list-container" class="hidden">
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="tracker-items"></div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="p-6 border-t border-white/5 flex items-center justify-between bg-surface-elevated/20">
-      <div class="hidden sm:block text-xs text-gray-400">Artes encontradas via rastreamento automatizado DuckDuckGo.</div>
-      <div class="flex gap-3 w-full sm:w-auto">
-        <button id="btn-save-all" class="flex-1 sm:flex-none btn-primary hidden bg-green-600 hover:bg-green-500 border-green-500/30">Salvar Carregados</button>
-        <button id="btn-tracker-close" class="flex-1 sm:flex-none btn-secondary">Fechar</button>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // ─── Toggles de Visualização ──────────────────────────────────────────────
-  const btnToggleForm = document.getElementById('btn-toggle-form');
-  const btnToggleBulk = document.getElementById('btn-toggle-bulk');
-  const formSection = document.getElementById('admin-form-section');
-  const bulkSection = document.getElementById('admin-bulk-section');
-
-  function updateToggleState(btn, section, labelOpen, labelClosed, iconPlus, iconClose) {
-    const isHidden = section.classList.contains('hidden');
-    btn.innerHTML = isHidden 
-      ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPlus}"/></svg> ${labelClosed}`
-      : `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconClose}"/></svg> ${labelOpen}`;
-  }
-
-  const iconPlus = "M12 4v16m8-8H4";
-  const iconClose = "M6 18L18 6M6 6l12 12";
-  const iconLote = "M19 11H5m14 0l-2 2H5l-2-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2";
-
-  btnToggleForm?.addEventListener('click', () => {
-    formSection.classList.toggle('hidden');
-    bulkSection.classList.add('hidden'); // Fecha o outro
-    updateToggleState(btnToggleForm, formSection, 'Fechar', 'Adicionar Novo', iconPlus, iconClose);
-    updateToggleState(btnToggleBulk, bulkSection, 'Fechar', 'Lote', iconLote, iconClose);
-  });
-
-  btnToggleBulk?.addEventListener('click', () => {
-    bulkSection.classList.toggle('hidden');
-    formSection.classList.add('hidden'); // Fecha o outro
-    updateToggleState(btnToggleBulk, bulkSection, 'Fechar', 'Lote', iconLote, iconClose);
-    updateToggleState(btnToggleForm, formSection, 'Fechar', 'Adicionar Novo', iconPlus, iconClose);
-  });
-
-  // ─── Atualiza label dos inputs de arquivo ─────────────────────────────────
-  function setupFileLabel(inputId, labelId) {
-    const input = document.getElementById(inputId);
-    const label = document.getElementById(labelId);
-    if (!input || !label) return;
-    input.addEventListener('change', () => {
-      label.textContent = input.files[0] ? input.files[0].name : 'Selecionar arquivo';
-    });
-  }
-  setupFileLabel('capa', 'capa-label');
-  setupFileLabel('torrent', 'torrent-label');
-
-  // ─── Confirmação de exclusão ──────────────────────────────────────────────
-  document.querySelectorAll('.form-delete').forEach(form => {
-    form.addEventListener('submit', function (e) {
-      const nome = this.dataset.nome || 'este jogo';
-      if (!confirm(`Tem certeza que deseja excluir "${nome}"?\nEsta ação não pode ser desfeita.`)) {
-        e.preventDefault();
-      }
-    });
-  });
-
-  // ─── Previne múltiplos envios do formulário principal ────────────────────
-  document.getElementById('form-jogo').addEventListener('submit', function () {
-    // Sync do textarea de screenshots
-    const textAreas = document.getElementById('screenshots_text');
-    const hiddenInp = document.getElementById('screenshots');
-    if (textAreas && hiddenInp) {
-      const urls = textAreas.value.split(',').map(s => s.trim()).filter(s => s.startsWith('http'));
-      hiddenInp.value = JSON.stringify(urls);
-    }
-
-    const btn = document.getElementById('btn-submit');
-    btn.disabled = true;
-    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Salvando...';
-  });
-
-  // Preencher textarea caso seja edição (já com JSON oculto)
-  const preHidden = document.getElementById('screenshots');
-  const preText = document.getElementById('screenshots_text');
-  if (preHidden && preText && preHidden.value) {
-    try {
-      const arr = JSON.parse(preHidden.value);
-      if (Array.isArray(arr)) {
-        preText.value = arr.join(', ');
-      }
-    } catch(e){}
-  }
-
-  // ─── Scroll para o formulário se ?edit= presente ─────────────────────────
-  if (window.location.search.includes('edit=')) {
-    setTimeout(() => {
-      const el = document.getElementById('form-jogo');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }
-
-  // ─── Auto-Enriquecimento (RAWG API) ──────────────────────────────────────
-  const nomeInput = document.getElementById('nome');
-  const descricaoInput = document.getElementById('descricao');
-  const screenshotsInput = document.getElementById('screenshots');
-  const youtubeUrlInput = document.getElementById('youtube_url');
-  const enrichStatus = document.getElementById('enrich-status');
-
-  let enrichTimeout = null;
-
-  nomeInput.addEventListener('input', (e) => {
-    const rawVal = e.target.value;
+/**
+ * DRIVEtorrent Admin Core V3.3
+ * Fail-safe implementation for dashboard interactions.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // UI ELEMENTS
+    const btnToggleForm = document.getElementById('btn-toggle-form');
+    const btnToggleBulk = document.getElementById('btn-toggle-bulk');
+    const formSection = document.getElementById('admin-form-section');
+    const bulkSection = document.getElementById('admin-bulk-section');
     
-    // Se o campo estiver vazio ou estivermos editando um jogo existente, ignoramos.
-    // (Pode ajustar para funcionar na edição se preferir, mas geralmente é melhor só para adições novas)
-    {% if jogo_edit %}
-      return;
-    {% endif %}
+    // FORM ELEMENTS
+    const mainForm = document.getElementById('form-jogo');
+    const nomeInput = document.getElementById('nome');
+    const screenshotsArea = document.getElementById('screenshots_text');
+    const screenshotsHidden = document.getElementById('screenshots');
+    const enrichStatus = document.getElementById('enrich-status');
 
-    const categoriaSelect = document.getElementById('categoria');
-    const categoria = categoriaSelect ? categoriaSelect.value : 'Jogo';
+    // TRACKER ELEMENTS
+    const modalTracker = document.getElementById('modal-tracker');
+    const btnOpenTracker = document.getElementById('btn-open-tracker');
+    const btnCloseTracker = document.getElementById('btn-close-tracker');
+    const btnStartTracking = document.getElementById('btn-start-tracking');
+    const btnSaveAll = document.getElementById('btn-save-all');
+    const trackerGrid = document.getElementById('tracker-items');
+    const trackerEmpty = document.getElementById('tracker-empty-state');
 
-    if (rawVal.trim().length < 3) {
-      enrichStatus.classList.add('hidden');
-      return;
-    }
+    let savedTotal = 0;
+    let isTracking = false;
 
-    clearTimeout(enrichTimeout);
-    enrichTimeout = setTimeout(() => {
-      // Mostrar spinner
-      enrichStatus.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Buscando informações automáticas...</span>';
-      enrichStatus.classList.remove('hidden');
-      enrichStatus.classList.replace('text-green-400', 'text-brand');
-      enrichStatus.classList.replace('text-red-400', 'text-brand');
-
-      fetch(`{{ url_for('api_enrich') }}?q=${encodeURIComponent(rawVal)}&categoria=${encodeURIComponent(categoria)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.dados_rawg && data.dados_rawg.encontrado) {
-            // Preenche apenas descrição, screenshots e youtube, sem alterar o nome
-            if (!descricaoInput.value) {
-              descricaoInput.value = data.dados_rawg.descricao;
-            }
-            screenshotsInput.value = JSON.stringify(data.dados_rawg.screenshots || []);
-            const st = document.getElementById('screenshots_text');
-            if (st) st.value = (data.dados_rawg.screenshots || []).join(', ');
-            youtubeUrlInput.value = data.dados_rawg.youtube_url || '';
-            
-            // Preenche tamanho sugerido se houver e o usuário ainda não tiver preenchido
-            const tamanhoInput = document.getElementById('tamanho');
-            if (data.dados_rawg.tamanho_gb && !tamanhoInput.value) {
-              tamanhoInput.value = data.dados_rawg.tamanho_gb;
-            }
-
-            enrichStatus.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Metadados capturados com sucesso!</span>';
-            enrichStatus.classList.replace('text-brand', 'text-green-400');
-          } else {
-            enrichStatus.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>Nenhum metadado encontrado online.</span>';
-            enrichStatus.classList.replace('text-brand', 'text-blue-400');
-          }
-          
-          setTimeout(() => { enrichStatus.classList.add('hidden'); }, 4000);
-        })
-        .catch(err => {
-          console.error("Erro no enriquecimento:", err);
-          enrichStatus.innerHTML = '<span>Erro ao buscar dados automáticos.</span>';
-          enrichStatus.classList.replace('text-brand', 'text-red-400');
-          setTimeout(() => { enrichStatus.classList.add('hidden'); }, 3000);
-        });
-    }, 800);
-  });
-
-  // ─── Bulk Upload Logic ──────────────────────────────────────────────
-  const btnBulk = document.getElementById('btn-bulk-process');
-  const bulkInput = document.getElementById('bulk-files');
-  const bulkLabel = document.getElementById('bulk-label');
-  const bulkLog = document.getElementById('bulk-log');
-  const bulkProgress = document.getElementById('bulk-progress-container');
-  const bulkCat = document.getElementById('bulk-categoria');
-  const bulkCount = document.getElementById('bulk-count');
-  const bulkTitle = document.getElementById('bulk-status-title');
-
-  bulkInput.addEventListener('change', () => {
-    const count = bulkInput.files.length;
-    bulkLabel.textContent = count > 0 ? `${count} arquivo(s) selecionado(s)` : 'Selecionar vários arquivos';
-  });
-
-  btnBulk.addEventListener('click', async () => {
-    const files = bulkInput.files;
-    if (files.length === 0) {
-      alert('Selecione ao menos um arquivo .torrent');
-      return;
-    }
-
-    btnBulk.disabled = true;
-    bulkProgress.classList.remove('hidden');
-    bulkLog.innerHTML = '';
-    
-    let processed = 0;
-    const total = files.length;
-    bulkCount.textContent = `0/${total}`;
-    bulkTitle.textContent = 'Processando lote...';
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const formData = new FormData();
-      formData.append('torrent', file);
-      formData.append('categoria', bulkCat.value);
-
-      const logItem = document.createElement('div');
-      logItem.className = 'text-xs p-2 rounded bg-surface-elevated/50 border border-surface-border flex items-center justify-between';
-      logItem.innerHTML = `<span class="truncate pr-4">${file.name}</span><span class="text-brand animate-pulse">Enviando...</span>`;
-      bulkLog.prepend(logItem);
-
-      try {
-        const res = await fetch('{{ url_for("admin_bulk_upload") }}', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-          logItem.innerHTML = `<span class="truncate pr-4 text-gray-300">${data.nome || file.name}</span><span class="text-green-400">Sucesso!</span>`;
-        } else {
-          logItem.innerHTML = `<span class="truncate pr-4 text-gray-500">${file.name}</span><span class="text-red-400">${data.error || 'Erro'}</span>`;
-        }
-      } catch (err) {
-        logItem.innerHTML = `<span class="truncate pr-4 text-gray-500">${file.name}</span><span class="text-red-500">Falha na conexão</span>`;
-      }
-
-      processed++;
-      bulkCount.textContent = `${processed}/${total}`;
-      logItem.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-
-    bulkTitle.textContent = 'Lote concluído!';
-    btnBulk.disabled = false;
-    
-    // Refresh table if items were added
-    if (processed > 0) {
-      setTimeout(() => { window.location.reload(); }, 2000);
-    }
-  });
-
-  // ─── Lógica do Rastreador de Imagens (V2: Robust & Fast) ───────────────
-  const modalTracker = document.getElementById('modal-tracker');
-  const btnOpenTracker = document.getElementById('btn-open-tracker');
-  const btnCloseTracker = document.getElementById('btn-close-tracker');
-  const btnTrackerClose = document.getElementById('btn-tracker-close');
-  const btnStartTracking = document.getElementById('btn-start-tracking');
-  const btnSaveAll = document.getElementById('btn-save-all');
-  const trackerEmptyState = document.getElementById('tracker-empty-state');
-  const trackerListContainer = document.getElementById('tracker-list-container');
-  const trackerItemsGrid = document.getElementById('tracker-items');
-  const trackerProgressContainer = document.getElementById('tracker-progress-container');
-  const trackerProgressBar = document.getElementById('tracker-progress-bar');
-  const trackerPercentage = document.getElementById('tracker-percentage');
-  const trackerStatusText = document.getElementById('tracker-status-text');
-
-  let missingTorrents = [];
-  let isTracking = false;
-  let itemsToSave = new Set();
-
-  // Utilitário de Notificação (Toast)
-  function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return; // Fallback se não existir
-    
-    const toast = document.createElement('div');
-    toast.className = `flash-toast flash-${type} pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-xl shadow-card text-sm font-medium border border-white/10 animate-slide-up`;
-    
-    const icon = type === 'success' 
-      ? '<svg class="w-5 h-5 shrink-0 text-brand" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
-      : '<svg class="w-5 h-5 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
-
-    toast.innerHTML = `${icon}<span class="text-white">${message}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(20px)';
-      setTimeout(() => toast.remove(), 400);
-    }, 4000);
-  }
-
-  const openTracker = () => {
-    modalTracker.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeTracker = () => {
-    modalTracker.classList.add('hidden');
-    document.body.style.overflow = '';
-    if (itemsToSave.size > 0 && confirm("Deseja atualizar a página para ver as novas capas?")) {
-      window.location.reload();
-    }
-  };
-
-  btnOpenTracker?.addEventListener('click', openTracker);
-  btnCloseTracker?.addEventListener('click', closeTracker);
-  btnTrackerClose?.addEventListener('click', closeTracker);
-
-  btnStartTracking?.addEventListener('click', async () => {
-    btnStartTracking.disabled = true;
-    btnStartTracking.innerHTML = '<span class="animate-pulse">Buscando torrents...</span>';
-    
-    try {
-      const res = await fetch('/admin/api/torrents_sem_capa');
-      missingTorrents = await res.json();
-
-      if (missingTorrents.length === 0) {
-        showToast("Todos os torrents já possuem capa!", "info");
-        btnStartTracking.innerHTML = 'Concluido';
-        return;
-      }
-
-      trackerEmptyState.classList.add('hidden');
-      trackerListContainer.classList.remove('hidden');
-      trackerProgressContainer.classList.remove('hidden');
-      btnSaveAll.classList.remove('hidden');
-      
-      startTracking();
-    } catch (err) {
-      showToast("Erro ao conectar com o servidor.", "error");
-      btnStartTracking.disabled = false;
-      btnStartTracking.innerHTML = 'Iniciar Varredura';
-    }
-  });
-
-  async function startTracking() {
-    isTracking = true;
-    let current = 0;
-    const total = missingTorrents.length;
-    const batchSize = 3; // Processa em pequenos grupos para não travar o server/DDG
-
-    const processBatch = async (batch) => {
-      await Promise.all(batch.map(async (jogo) => {
-        const itemEl = createTrackerCard(jogo);
-        trackerItemsGrid.appendChild(itemEl);
-        await fetchPreviewsForItem(jogo.id, jogo.nome, jogo.categoria);
-        current++;
-        updateProgress(current, total);
-      }));
+    // ─── UTILS ───
+    const showToast = (msg, type='success') => {
+        const container = document.getElementById('toast-container');
+        if(!container) return;
+        const toast = document.createElement('div');
+        toast.className = `flash-toast flash-${type} p-4 rounded-xl border border-white/5 shadow-2xl animate-fadeIn flex items-center gap-3`;
+        toast.innerHTML = `<span class="w-2 h-2 ${type==='success'?'bg-brand':'bg-red-500'} rounded-full"></span><span class="text-white text-xs font-bold uppercase">${msg}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 4000);
     };
 
-    for (let i = 0; i < missingTorrents.length; i += batchSize) {
-      const batch = missingTorrents.slice(i, i + batchSize);
-      await processBatch(batch);
-      // Pequeno delay entre batches para evitar rate limit
-      await new Promise(r => setTimeout(r, 600));
-    }
+    // ─── TOGGLES ───
+    btnToggleForm?.addEventListener('click', () => {
+        formSection.classList.toggle('hidden');
+        bulkSection.classList.add('hidden');
+    });
+    btnToggleBulk?.addEventListener('click', () => {
+        bulkSection.classList.toggle('hidden');
+        formSection.classList.add('hidden');
+    });
 
-    trackerStatusText.innerHTML = "Busca concluída! Revise e salve as melhores artes.";
-    showToast(`Busca finalizada! ${total} itens encontrados.`, "success");
-    trackerProgressBar.classList.replace('bg-brand', 'bg-green-500');
-  }
+    // ─── RAWG ENRICH ───
+    let enrichTimeout;
+    nomeInput?.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        if (query.length < 3) return;
+        clearTimeout(enrichTimeout);
+        enrichTimeout = setTimeout(async () => {
+            enrichStatus.classList.remove('hidden');
+            try {
+                const cat = document.getElementById('categoria').value;
+                const res = await fetch(`/admin/api/enrich?q=${encodeURIComponent(query)}&categoria=${encodeURIComponent(cat)}`);
+                const data = await res.json();
+                if (data.dados_rawg?.encontrado) {
+                    const info = data.dados_rawg;
+                    if(!document.getElementById('descricao').value) document.getElementById('descricao').value = info.descricao;
+                    if(!document.getElementById('youtube_url').value) document.getElementById('youtube_url').value = info.youtube_url;
+                    if(info.screenshots?.length) {
+                        screenshotsArea.value = info.screenshots.join(', ');
+                        screenshotsHidden.value = JSON.stringify(info.screenshots);
+                    }
+                    showToast("Metadados encontrados!");
+                }
+            } catch(e){}
+            enrichStatus.classList.add('hidden');
+        }, 1000);
+    });
 
-  function updateProgress(current, total) {
-    const percent = Math.round((current / total) * 100);
-    trackerPercentage.textContent = `${percent}%`;
-    trackerProgressBar.style.width = `${percent}%`;
-    trackerStatusText.textContent = `Processando item ${current} de ${total}...`;
-  }
+    // ─── DELETE MODAL ───
+    window.confirmDelete = (id, nome) => {
+        const modal = document.getElementById('delete-modal');
+        document.getElementById('delete-item-name').textContent = nome;
+        document.getElementById('delete-form').action = `/admin/excluir/${id}`; 
+        modal.classList.remove('hidden');
+    };
 
-  function createTrackerCard(jogo) {
-    const div = document.createElement('div');
-    div.className = "tracker-item-card relative aspect-[80/130] bg-surface-elevated rounded-xl overflow-hidden border border-white/5 group";
-    div.id = `tracker-item-${jogo.id}`;
-    div.innerHTML = `
-      <div class="absolute inset-0 flex items-center justify-center spinner-container bg-surface-card">
-        <div class="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
-      </div>
-      <img src="" class="w-full h-full object-cover opacity-0 transition-opacity duration-500 preview-img" />
-      
-      <!-- Overlay de Ações -->
-      <div class="tracker-overlay absolute inset-0 flex flex-col justify-end p-2 gap-2">
-        <div class="flex items-center justify-center gap-2 mb-auto mt-auto translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-           <button onclick="zoomImage(this)" class="p-2 bg-white/10 hover:bg-brand backdrop-blur-md rounded-full text-white transition-all shadow-lg" title="Zoom">
-             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-           </button>
-           <button onclick="reloadItemImage(${jogo.id}, '${jogo.nome.replace(/'/g, "\\'")}', '${jogo.categoria}')" class="p-2 bg-white/10 hover:bg-blue-500 backdrop-blur-md rounded-full text-white transition-all shadow-lg btn-reload" title="Trocar Arte">
-             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-           </button>
-        </div>
-        <div class="text-[10px] text-white font-bold truncate drop-shadow-md px-1">${jogo.nome}</div>
-        <button onclick="saveItemImage(${jogo.id})" class="w-full btn-save py-1.5 bg-brand hover:bg-brand-hover text-[10px] uppercase font-black rounded-lg transition-all hidden">Salvar</button>
-      </div>
-    `;
-    return div;
-  }
+    // ─── TRACKER ENGINE ───
+    btnOpenTracker?.addEventListener('click', () => {
+        modalTracker.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    });
 
-  async function fetchPreviewsForItem(jogoId, nome, categoria) {
-    const itemEl = document.getElementById(`tracker-item-${jogoId}`);
-    if (!itemEl) return;
-    const imgEl = itemEl.querySelector('.preview-img');
-    const spinner = itemEl.querySelector('.spinner-container');
-    const btnSave = itemEl.querySelector('.btn-save');
+    btnCloseTracker?.addEventListener('click', () => {
+        modalTracker.classList.add('hidden');
+        document.body.style.overflow = '';
+        if(savedTotal > 0) window.location.reload();
+    });
 
-    try {
-      const res = await fetch(`/admin/api/buscar_previas?q=${encodeURIComponent(nome)}&cat=${encodeURIComponent(categoria)}`);
-      const data = await res.json();
-      
-      if (data.urls && data.urls.length > 0) {
-        itemEl.dataset.urls = JSON.stringify(data.urls);
-        itemEl.dataset.currentIndex = 0;
-        imgEl.src = data.urls[0];
-        imgEl.onload = () => {
-          imgEl.classList.remove('opacity-0');
-          spinner.classList.add('hidden');
-          btnSave.classList.remove('hidden');
+    btnStartTracking?.addEventListener('click', async () => {
+        if(isTracking) return;
+        btnStartTracking.disabled = true;
+        btnStartTracking.innerHTML = `<span class="animate-pulse">Varrendo...</span>`;
+        
+        try {
+            const res = await fetch('/admin/api/torrents_sem_capa');
+            const missing = await res.json();
+            if(!missing.length) {
+                showToast("Tudo atualizado!", "info");
+                btnStartTracking.innerHTML = "OK";
+                return;
+            }
+            trackerEmpty.classList.add('hidden');
+            document.getElementById('tracker-progress-container').classList.remove('hidden');
+            btnSaveAll.classList.remove('hidden');
+            
+            isTracking = true;
+            for(let i=0; i < missing.length; i++) {
+                const item = missing[i];
+                const card = createScoutCard(item);
+                trackerGrid.prepend(card);
+                fetchArt(item, card); // Inicia async sem travar o loop principal de criação
+                
+                const p = Math.round(((i+1)/missing.length)*100);
+                document.getElementById('tracker-progress-bar').style.width = `${p}%`;
+                document.getElementById('tracker-percentage').textContent = `${p}%`;
+                document.getElementById('tracker-status-text').textContent = `Localizando: ${item.nome.substring(0,20)}...`;
+                
+                // Sleep pequeno para efeito visual de "cascata"
+                await new Promise(r => setTimeout(r, 80));
+            }
+            
+            btnStartTracking.innerHTML = "Concluído";
+            showToast("Varredura de sugestões finalizada!", "success");
+        } catch(e){
+            btnStartTracking.disabled = false;
+            btnStartTracking.innerHTML = "Erro na Busca";
+        }
+    });
+
+    btnSaveAll?.addEventListener('click', async () => {
+        const activeCards = document.querySelectorAll('.scout-card:not(.grayscale)');
+        if(!activeCards.length) {
+            showToast("Nenhuma imagem para salvar", "info");
+            return;
+        }
+
+        btnSaveAll.disabled = true;
+        const originalText = btnSaveAll.innerHTML;
+        btnSaveAll.innerHTML = "Salvando Lote...";
+
+        const dataToSave = [];
+        activeCards.forEach(card => {
+            const img = card.querySelector('.art-img');
+            const jId = card.getAttribute('data-jogo-id');
+            if(img && img.src && !img.src.includes('data:image')) {
+                dataToSave.push({ jogo_id: parseInt(jId), img_url: img.src });
+            }
+        });
+
+        if(dataToSave.length === 0) {
+            btnSaveAll.disabled = false;
+            btnSaveAll.innerHTML = originalText;
+            return;
+        }
+
+        try {
+            const res = await fetch('/admin/api/salvar_todas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(dataToSave)
+            });
+            const result = await res.json();
+            if(result.success) {
+                showToast(`Sucesso! ${result.total_salvos} capas salvas.`, "success");
+                activeCards.forEach(card => {
+                    card.classList.add('grayscale', 'opacity-30', 'pointer-events-none');
+                });
+                savedTotal += result.total_salvos;
+                btnSaveAll.classList.add('hidden');
+            }
+        } catch(e) {
+            showToast("Erro ao salvar lote", "error");
+        } finally {
+            btnSaveAll.disabled = false;
+            btnSaveAll.innerHTML = originalText;
+        }
+    });
+
+    function createScoutCard(item) {
+        const d = document.createElement('div');
+        d.className = "scout-card group animate-fadeIn";
+        d.setAttribute('data-jogo-id', item.id);
+        d.innerHTML = `
+            <div class="absolute inset-0 flex items-center justify-center bg-white/5 spinner">
+                <div class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <img class="w-full h-full object-cover opacity-0 transition-opacity duration-700 art-img" src="">
+            <div class="scout-overlay absolute inset-0 flex flex-col justify-between p-2 pb-3 transition-all z-10">
+                <div class="flex justify-end gap-1">
+                    <button class="btn-scout-action btn-reload" title="Recarregar Sugestão">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                    <button class="btn-scout-action btn-zoom" title="Ver em tamanho real">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                    </button>
+                </div>
+                <div class="space-y-1.5">
+                    <div class="text-[7px] font-black text-white italic truncate px-0.5 leading-none uppercase drop-shadow-md text-center bg-black/60 py-0.5 rounded">${item.nome}</div>
+                    <button class="w-full py-1.5 bg-brand hover:scale-105 text-[8px] font-black text-white italic uppercase rounded btn-save hidden shadow-glow">Salvar</button>
+                </div>
+            </div>
+        `;
+
+        // Bind logic
+        d.querySelector('.btn-reload').onclick = (e) => {
+            e.stopPropagation();
+            fetchArt(item, d);
         };
-      } else {
-        spinner.innerHTML = '<span class="text-[9px] text-gray-500 uppercase font-bold text-center px-1">Sem Imagem</span>';
-      }
-    } catch (err) {
-      spinner.innerHTML = '<span class="text-[9px] text-red-500 font-bold">ERRO</span>';
-    }
-  }
 
-  window.reloadItemImage = async (jogoId, nome, categoria) => {
-    const itemEl = document.getElementById(`tracker-item-${jogoId}`);
-    const imgEl = itemEl.querySelector('.preview-img');
-    const spinner = itemEl.querySelector('.spinner-container');
-    const btnReload = itemEl.querySelector('.btn-reload');
-    
-    btnReload.classList.add('animate-spin');
-    
-    let urls = [];
-    try { urls = JSON.parse(itemEl.dataset.urls || "[]"); } catch(e) {}
+        d.querySelector('.btn-zoom').onclick = (e) => {
+            e.stopPropagation();
+            const img = d.querySelector('.art-img');
+            const overlay = document.getElementById('tracker-zoom-overlay');
+            const zoomImg = document.getElementById('tracker-zoom-img');
+            const zoomTitle = document.getElementById('tracker-zoom-title');
+            if(img.src) {
+                zoomImg.src = img.src;
+                zoomTitle.innerText = item.nome;
+                overlay.classList.remove('hidden');
+            }
+        };
 
-    let nextIndex = (parseInt(itemEl.dataset.currentIndex || 0) + 1);
-    
-    if (urls.length > 0 && nextIndex < urls.length) {
-      itemEl.dataset.currentIndex = nextIndex;
-      imgEl.src = urls[nextIndex];
-      setTimeout(() => btnReload.classList.remove('animate-spin'), 600);
-    } else {
-      imgEl.classList.add('opacity-0');
-      spinner.classList.remove('hidden');
-      await fetchPreviewsForItem(jogoId, nome, categoria);
-      btnReload.classList.remove('animate-spin');
-    }
-  };
-
-  window.zoomImage = (btn) => {
-    const card = btn.closest('.tracker-item-card');
-    const img = card.querySelector('.preview-img');
-    const title = card.querySelector('.text-[10px]').textContent;
-    const overlay = document.getElementById('tracker-zoom-overlay');
-    const zoomImg = document.getElementById('tracker-zoom-img');
-    const zoomTitle = document.getElementById('tracker-zoom-title');
-    
-    if (img.src) {
-      zoomImg.src = img.src;
-      zoomTitle.textContent = title;
-      overlay.classList.remove('hidden');
-    }
-  };
-
-  window.saveItemImage = async (jogoId, silent = false) => {
-    const itemEl = document.getElementById(`tracker-item-${jogoId}`);
-    const imgEl = itemEl.querySelector('.preview-img');
-    const btnSave = itemEl.querySelector('.btn-save');
-
-    if (!imgEl.src || btnSave.disabled) return false;
-
-    btnSave.disabled = true;
-    const originalText = btnSave.innerHTML;
-    btnSave.innerHTML = '...';
-
-    try {
-      const res = await fetch('/admin/api/salvar_capa_escolhida', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jogo_id: jogoId, img_url: imgEl.src })
-      });
-      
-      const data = await res.json();
-      if (data.success) {
-        itemsToSave.add(jogoId);
-        btnSave.innerHTML = '✓ OK';
-        btnSave.className = "w-full py-1.5 bg-green-500/20 text-green-500 text-[10px] font-bold rounded-lg cursor-default";
-        itemEl.classList.add('grayscale-[0.5]', 'opacity-40');
-        if (!silent) showToast(`Capa de "${data.nome || 'jogo'}" salva!`);
-        return true;
-      }
-    } catch (err) {
-      if (!silent) showToast("Erro ao salvar.", "error");
-    }
-    btnSave.disabled = false;
-    btnSave.innerHTML = originalText;
-    return false;
-  };
-
-  btnSaveAll?.addEventListener('click', async () => {
-    const visibleSaveBtns = Array.from(trackerItemsGrid.querySelectorAll('.btn-save:not(.hidden):not(.cursor-default)'));
-    
-    if (visibleSaveBtns.length === 0) {
-      showToast("Nenhuma nova imagem carregada para salvar.", "info");
-      return;
+        return d;
     }
 
-    if (!confirm(`Deseja salvar as artes de ${visibleSaveBtns.length} itens simultaneamente?`)) return;
+    async function fetchArt(item, el) {
+        const img = el.querySelector('.art-img');
+        const btn = el.querySelector('.btn-save');
+        const spinner = el.querySelector('.spinner') || document.createElement('div');
+        
+        if(!el.querySelector('.spinner')) {
+             spinner.className = "absolute inset-0 flex items-center justify-center bg-black/60 spinner z-20";
+             spinner.innerHTML = `<div class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>`;
+             el.appendChild(spinner);
+        }
 
-    btnSaveAll.disabled = true;
-    const originalContent = btnSaveAll.innerHTML;
-    btnSaveAll.innerHTML = '<span class="animate-pulse">Processando Lote...</span>';
+        img.classList.add('opacity-0');
+        btn.classList.add('hidden');
 
-    let successCount = 0;
-    for (const btn of visibleSaveBtns) {
-      const card = btn.closest('.tracker-item-card');
-      const jogoId = card.id.replace('tracker-item-', '');
-      const success = await window.saveItemImage(parseInt(jogoId), true);
-      if (success) successCount++;
+        try {
+            const r = await fetch(`/admin/api/buscar_previas?q=${encodeURIComponent(item.nome)}&cat=${encodeURIComponent(item.categoria)}`);
+            const d = await r.json();
+            if(d.urls?.length) {
+                // Sorteia uma imagem diferente da atual se for reload
+                const randomUrl = d.urls[Math.floor(Math.random() * d.urls.length)];
+                img.src = randomUrl;
+                img.onload = () => {
+                    img.classList.remove('opacity-0');
+                    spinner.remove();
+                    btn.classList.remove('hidden');
+                };
+                img.onerror = () => {
+                    spinner.innerHTML = `<span class="text-[8px] text-red-500 font-bold px-1 text-center">Erro Img</span>`;
+                };
+            } else {
+                spinner.innerHTML = `<span class="text-[8px] text-gray-500 font-bold px-1 text-center">Nenhuma Arte</span>`;
+            }
+        } catch(e){
+            spinner.innerHTML = `<span class="text-[8px] text-red-500 font-bold px-1 text-center">Falha Rede</span>`;
+        }
+
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            btn.disabled = true; btn.innerHTML = "...";
+            try {
+                const r = await fetch('/admin/api/salvar_capa_escolhida', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({jogo_id:item.id, img_url:img.src})
+                });
+                const res = await r.json();
+                if(res.success) {
+                    btn.innerHTML = "OK"; 
+                    el.classList.add('grayscale', 'opacity-30', 'pointer-events-none');
+                    savedTotal++;
+                    showToast(`Capa salva: ${item.nome.substring(0,15)}...`, "success");
+                }
+            } catch(e){ btn.disabled = false; btn.innerHTML = "ER"; }
+        };
     }
-
-    showToast(`${successCount} imagens salvas com sucesso!`, "success");
-    btnSaveAll.disabled = false;
-    btnSaveAll.innerHTML = originalContent;
-  });
-
-  // Fecha Zoom ao clicar fora
-  document.getElementById('tracker-zoom-overlay').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.add('hidden');
-  });
+});
 </script>
 {% endblock %}

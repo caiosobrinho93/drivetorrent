@@ -515,6 +515,40 @@ def admin_api_salvar_capa_escolhida():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/admin/api/salvar_todas", methods=["POST"])
+@admin_required
+def admin_api_salvar_todas():
+    """Baixa e salva múltiplas capas de uma vez."""
+    try:
+        items = request.get_json() # Espera [{jogo_id, img_url}, ...]
+        if not items or not isinstance(items, list):
+            return jsonify({"error": "Dados inválidos"}), 400
+            
+        resultados = []
+        for item in items:
+            j_id = item.get("jogo_id")
+            url = item.get("img_url")
+            if not j_id or not url: continue
+            
+            jogo = db.get_jogo_by_id(j_id)
+            if not jogo: continue
+            
+            # Baixa
+            try:
+                path = _baixar_imagem(url, jogo["slug"])
+                if path:
+                    # Deleta antiga
+                    if jogo["capa_path"] and jogo["capa_path"] != "covers/default.jpg":
+                        deletar_arquivos_jogo(jogo["capa_path"], "")
+                    db.update_jogo_capa(j_id, path)
+                    resultados.append(j_id)
+            except: pass
+            
+        return jsonify({"success": True, "total_salvos": len(resultados), "ids": resultados})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/admin/api/analisar_item/<int:jogo_id>", methods=["POST"])
 @admin_required
 def admin_api_analisar_item(jogo_id):
