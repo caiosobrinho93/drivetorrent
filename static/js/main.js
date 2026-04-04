@@ -25,39 +25,85 @@ const AppState = {
  * SINCRONIZADO com _card.html (Single Face Edition)
  */
 function renderCard(jogo) {
-  const capaUrl = `/static/${escapeHtml(jogo.capa_path)}`;
+  const capaUrl = `/static/${jogo.capa_path}`;
   const defaultUrl = '/static/covers/default.jpg';
   const detailUrl = `/jogo/${jogo.id}`;
-  const tamanho = formatarTamanho(jogo.tamanho);
-  const categoria = escapeHtml(jogo.categoria);
-  const nome = escapeHtml(jogo.nome);
-  const plataforma = escapeHtml(jogo.plataforma || 'PC');
+  const nome = jogo.nome;
 
   return `
-    <a href="${detailUrl}" class="game-card group neon-border flex outline-none" data-id="${jogo.id}">
-      <div class="card-image-container relative rounded-[11px] overflow-hidden shrink-0">
-        <img src="${capaUrl}" alt="Capa ${nome}" onerror="this.src='${defaultUrl}'" class="w-full h-full object-cover transition-filter duration-300" loading="lazy" />
-        <div class="card-badge-grid absolute top-3 left-3 z-10 transition-opacity duration-200">
-          <div class="bg-black/60 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-brand">${categoria}</span>
+    <div class="game-card group neon-border flex outline-none" data-id="${jogo.id}" data-nome="${nome}" data-capa="${capaUrl}">
+      <div class="card-image-container flex-1 relative rounded-[11px] overflow-hidden">
+        <img src="${capaUrl}" alt="${nome}" onerror="this.src='${defaultUrl}'" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+        <div class="scout-overlay">
+          <div class="scout-actions">
+            <button class="btn-scout-mini btn-zoom" title="Ver em tamanho real" onclick="event.preventDefault(); openLightbox('${nome}', '${capaUrl}')">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0M10 7v6m3-3H7"/></svg>
+            </button>
+            <button class="btn-scout-mini btn-reload" title="Trocar Imagem" onclick="event.preventDefault(); reloadCardImage(this, ${jogo.id}, '${nome}', '${jogo.categoria}')">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+          </div>
+          <div class="card-scout-footer">
+            <h3 class="card-scout-title">${nome}</h3>
           </div>
         </div>
-        <div class="img-overlay-gradient absolute bottom-0 left-0 w-full h-[80px] bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none transition-opacity duration-200"></div>
+        <a href="${detailUrl}" class="absolute inset-0 z-10"></a>
       </div>
-      <div class="card-info flex flex-col justify-end pt-2 pb-3 px-3 transition-all duration-200 z-10 min-w-0">
-        <div class="card-badge-list hidden mb-1 truncate">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/10 px-1.5 py-0.5 rounded border border-brand/20">${categoria}</span>
-        </div>
-        <h3 class="card-title text-[13px] font-bold text-white leading-snug line-clamp-2 mt-auto" data-tooltip="${nome}">
-          ${nome}
-        </h3>
-        <div class="card-meta flex items-center justify-between mt-1 opacity-80 min-w-0 gap-2">
-          <span class="text-[11px] text-gray-300 truncate">${plataforma}</span>
-          <span class="text-[11px] font-bold text-brand whitespace-nowrap">${tamanho} GB</span>
-        </div>
-      </div>
-    </a>`;
+    </div>`;
 }
+
+/**
+ * Global Lightbox Logic
+ */
+window.openLightbox = (title, url) => {
+  const overlay = document.getElementById('lightbox-overlay');
+  const img = document.getElementById('lightbox-img');
+  const titleEl = document.getElementById('lightbox-title');
+  if (!overlay || !img || !titleEl) return;
+
+  img.src = url;
+  titleEl.textContent = title;
+  overlay.classList.remove('hidden');
+};
+
+/**
+ * Rapid Reload Logic for Scout Cards
+ */
+window.reloadCardImage = async (btn, id, nome, categoria) => {
+  const icon = btn.querySelector('svg');
+  icon.classList.add('animate-spin');
+  btn.classList.add('opacity-50', 'pointer-events-none');
+
+  try {
+    const res = await fetch(`/admin/api/buscar_previas?q=${encodeURIComponent(nome)}&cat=${categoria}`);
+    const data = await res.json();
+
+    if (data.success && data.opcoes && data.opcoes.length > 0) {
+      // Pega a primeira opção e salva automaticamente
+      const saveRes = await fetch('/admin/api/salvar_capa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jogo_id: id, url: data.opcoes[0] })
+      });
+      const saveData = await saveRes.json();
+
+      if (saveData.success) {
+        // Atualiza a imagem no card
+        const card = btn.closest('.game-card');
+        const img = card.querySelector('img');
+        img.src = saveData.novo_path + '?t=' + Date.now();
+        showToast('Capa atualizada!', 'success');
+      }
+    } else {
+      showToast('Nenhuma imagem encontrada.', 'error');
+    }
+  } catch (err) {
+    showToast('Erro ao buscar imagem.', 'error');
+  } finally {
+    icon.classList.remove('animate-spin');
+    btn.classList.remove('opacity-50', 'pointer-events-none');
+  }
+};
 
 /**
  * Renderiza a grade de jogos.

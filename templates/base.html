@@ -156,6 +156,19 @@
     </div>
   </header>
 
+  <!-- ══════════ LIGHTBOX GLOBAL ══════════ -->
+  <div id="lightbox-overlay" class="fixed inset-0 z-[3000] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-fadeIn transition-all duration-300">
+      <div class="relative max-w-5xl w-full flex flex-col items-center">
+          <button onclick="document.getElementById('lightbox-overlay').classList.add('hidden')" class="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors p-2 hover:rotate-90">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+          <div class="bg-[#111118] p-2 rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,1)] overflow-hidden mb-4">
+              <img id="lightbox-img" src="" class="max-h-[80vh] w-auto rounded-xl object-contain">
+          </div>
+          <h3 id="lightbox-title" class="text-2xl font-black text-white italic uppercase tracking-tighter text-center max-w-2xl drop-shadow-lg"></h3>
+      </div>
+  </div>
+
   <!-- ══════════ FLASH MESSAGES (TOASTS) ══════════ -->
   <div id="toast-container" class="fixed bottom-6 right-6 z-[2000] flex flex-col gap-3 pointer-events-none">
     {% with messages = get_flashed_messages(with_categories=true) %}
